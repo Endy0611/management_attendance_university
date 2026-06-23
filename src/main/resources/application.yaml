@@ -1,0 +1,59 @@
+server:
+  port: 9090
+  address: 0.0.0.0
+
+spring:
+  config:
+    import: optional:file:.env[.properties]
+  application:
+    name: attendee_university
+  profiles:
+    active: dev
+  jpa:
+    hibernate:
+      ddl-auto: update
+    database: postgresql
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  data:
+    redis:
+      host: ${SPRING_REDIS_HOST:localhost}
+      port: ${SPRING_REDIS_PORT:6379}
+
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    from: ${MAIL_FROM}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: ${JWT_EXPIRATION}
+  refresh-token-expiry-days: 7
+  remember-me-expiry-days: 30
+
+rustfs:
+  url: ${RUSTFS_URL:http://localhost:9000}
+  access:
+    name: ${RUSTFS_ACCESS_KEY}
+    secret: ${RUSTFS_SECRET_KEY}
+  bucket:
+    name: ${RUSTFS_BUCKET_NAME:demo-file-upload}
+
+logging:
+  level:
+    root: INFO
+    com.example.attendee_university: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.jdbc: DEBUG
+    org.hibernate.SQL: DEBUG

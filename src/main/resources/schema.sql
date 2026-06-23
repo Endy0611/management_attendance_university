@@ -1,0 +1,1 @@
+UPDATE app_users SET role = 'STUDENT' WHERE email = 'endyong18@gmail.com';
