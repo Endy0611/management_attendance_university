@@ -4,7 +4,6 @@ pipeline {
     stages {
         stage('Checkout Code') {
             steps {
-                // Pulls the fresh code from your GitHub develop branch
                 checkout scm
             }
         }
@@ -12,16 +11,12 @@ pipeline {
         stage('Build Spring Boot JAR') {
             steps {
                 echo 'Compiling and packaging the Spring Boot application with Gradle...'
-                // Grant execution permissions to the gradle wrapper, then compile the JAR file
                 sh 'chmod +x gradlew'
                 sh './gradlew clean bootJar -x test'
             }
         }
 
         stage('Deploy Locally') {
-            when {
-                branch 'develop'
-            }
             steps {
                 echo 'Deploying Spring Boot application to active Docker container...'
 
