@@ -4,6 +4,7 @@ pipeline {
     stages {
         stage('Checkout Code') {
             steps {
+                // Pulls the fresh code from your GitHub develop branch
                 checkout scm
             }
         }
@@ -11,7 +12,7 @@ pipeline {
         stage('Build Spring Boot JAR') {
             steps {
                 echo 'Compiling and packaging the Spring Boot application with Gradle...'
-                // Ensure the Gradle wrapper has execution permissions, then build the JAR
+                // Grant execution permissions to the gradle wrapper, then compile the JAR file
                 sh 'chmod +x gradlew'
                 sh './gradlew clean bootJar -x test'
             }
@@ -22,24 +23,17 @@ pipeline {
                 branch 'develop'
             }
             steps {
-                echo 'Deploying Spring Boot application locally to /var/www...'
+                echo 'Deploying Spring Boot application to active Docker container...'
 
-                // 1. Gradle outputs the built jar into the build/libs/ directory.
-                // We copy it straight over to our deployment folder.
+                // 1. Copy the newly generated JAR file over to your shared volume path
                 sh 'cp build/libs/*.jar /var/www/my-backend-app/app.jar'
 
-                // 2. Safely stop the old instance and spin up the new one in the background
+                // 2. Head to your project directory and restart the backend service
                 sh '''
-                    cd /var/www/my-backend-app/
-
-                    # Kill any existing application running on your backend port (e.g. 8080)
-                    sudo fuser -k 8080/tcp || true
-
-                    # Start the fresh Spring Boot JAR quietly in the background
-                    nohup java -jar app.jar > spring-boot.log 2>&1 &
-
-                    echo "Spring Boot application updated and running!"
+                    cd /home/hrdeventhub/management_attendance_university
+                    sudo docker compose restart backend
                 '''
+                echo 'Deployment successful! Container updated.'
             }
         }
     }
