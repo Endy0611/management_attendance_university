@@ -17,13 +17,13 @@ public class GroupSessionResponse {
     private UUID groupId;
     private String groupName;
     private String courseCode;
-    private UUID          zoneId;
-    private String        zoneName;
-    private double         latitude;
-    private double         longitude;
-    private double         radiusMeters;
+    private UUID zoneId;
+    private String zoneName;
+    private double latitude;
+    private double longitude;
+    private double radiusMeters;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
-    private boolean        active;
+    private boolean active;
     private LocalDateTime createdAt;
 }

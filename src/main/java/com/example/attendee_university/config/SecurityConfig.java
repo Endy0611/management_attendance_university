@@ -5,12 +5,15 @@ import com.example.attendee_university.jwt.JwtAuthFilter;
 import lombok.AllArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.messaging.Message;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authorization.AuthorizationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.messaging.access.intercept.MessageMatcherDelegatingAuthorizationManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
@@ -38,6 +41,9 @@ public class SecurityConfig {
                         request
                                 .requestMatchers(
                                         "/api/v1/auths/**",
+                                        // WebSocket handshake endpoint (auth handled by JwtHandshakeInterceptor)
+                                        "/ws/**",
+                                        // Swagger / OpenAPI
                                         "/v3/api-docs/**",
                                         "/swagger-ui/**",
                                         "/swagger-ui.html"
@@ -50,5 +56,9 @@ public class SecurityConfig {
                         ex.authenticationEntryPoint(jwtAuthEntryPoint))
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
+    }
+    @Bean
+    MessageMatcherDelegatingAuthorizationManager.Builder messageAuthorizationManagerBuilder() {
+        return MessageMatcherDelegatingAuthorizationManager.builder();
     }
 }

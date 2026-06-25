@@ -1,5 +1,6 @@
 package com.example.attendee_university.service;
 
+import com.example.attendee_university.model.dto.auth.request.AdminUpdateUserRequest;
 import com.example.attendee_university.model.dto.auth.request.AppUserRequest;
 import com.example.attendee_university.model.dto.auth.request.AppUserUpdateRequest;
 import com.example.attendee_university.model.dto.auth.request.ChangePasswordRequest;
@@ -38,11 +39,22 @@ public interface AppUserService extends UserDetailsService {
 
     void changePassword(@Valid ChangePasswordRequest request);
 
+    void deactivateMe();
+
+    // ── Admin ──────────────────────────────────────────────────
+    AppUserResponse createUser(@Valid CreateUserRequest request);
+
+    List<AppUserResponse> getAllUsers();
+
+    AppUserResponse getUserById(UUID id);
+
+    AppUserResponse adminUpdateUser(UUID id, @Valid AdminUpdateUserRequest request);
+
     void changeRole(UUID id, String role);
 
     void adminResetPassword(UUID id);
 
-    AppUserResponse createUser(@Valid CreateUserRequest request);
+    void setUserActive(UUID id, boolean active);
 
-    List<AppUserResponse> getAllUsers();
+    void adminResetDevice(UUID id);
 }

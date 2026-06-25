@@ -17,8 +17,13 @@ public class AppUserResponse {
     private String        name;
     private String        email;
     private String        phone;
+    private String        studentId;
+    private Integer       generation;
     private String        role;
     private String        avatar;
     private boolean       verified;
+    private boolean       active;
+    private boolean       deviceBound;
+    private boolean       firstLogin;
     private LocalDateTime createdAt;
 }

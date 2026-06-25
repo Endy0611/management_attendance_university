@@ -9,26 +9,27 @@ import io.swagger.v3.oas.annotations.servers.Server;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.web.bind.annotation.CrossOrigin;
 
 @SpringBootApplication
 @EnableCaching
 @CrossOrigin(origins = "http://localhost:3000")
+@EnableAsync
+@EnableScheduling
 @OpenAPIDefinition(
         info =
         @Info(
-                title = "HRD EventHub API V5",
+                title = "Management University API V1",
                 version = "V5",
                 description =
                         """
-                                HRD EventHub is a backend service for managing alumni, students,
-                                and organizational events across generations and workspaces.
+                                ...
                                 """),
         servers = {
                 @Server(url = "http://localhost:9090", description = "Local Development Server"),
-                @Server(url = "http://localhost:8080", description = "Local Development Server"),
-                @Server(url = "https://api.hrdevent.app/", description = "Production Server"),
-                @Server(url = "https://api.hrdevent.app/", description = "Production for dev Server"),
+                @Server(url = "http://localhost:8080", description = "Local Development Server")
         })
 @SecurityScheme(
         name = "bearerAuth",

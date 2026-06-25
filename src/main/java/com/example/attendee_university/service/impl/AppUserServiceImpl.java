@@ -1,14 +1,18 @@
 package com.example.attendee_university.service.impl;
 
 import com.example.attendee_university.exception.BadRequestException;
+import com.example.attendee_university.exception.NotFoundException;
 import com.example.attendee_university.model.constraint.RoleType;
+import com.example.attendee_university.model.dto.auth.request.AdminUpdateUserRequest;
 import com.example.attendee_university.model.dto.auth.request.AppUserRequest;
 import com.example.attendee_university.model.dto.auth.request.AppUserUpdateRequest;
 import com.example.attendee_university.model.dto.auth.request.ChangePasswordRequest;
 import com.example.attendee_university.model.dto.auth.request.CreateUserRequest;
 import com.example.attendee_university.model.dto.auth.response.AppUserResponse;
 import com.example.attendee_university.model.entity.AppUser;
+import com.example.attendee_university.model.entity.DeviceFingerprint;
 import com.example.attendee_university.repository.AppUserRepository;
+import com.example.attendee_university.repository.DeviceFingerprintRepository;
 import com.example.attendee_university.service.AppUserService;
 import com.example.attendee_university.service.OtpService;
 import com.example.attendee_university.utils.HandleCurrentUser;
@@ -30,11 +34,12 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AppUserServiceImpl implements AppUserService {
 
-    private final AppUserRepository appUserRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final OtpService otpService;
-    private final CompromisedPasswordChecker compromisedPasswordChecker;
-    private final HandleCurrentUser handleCurrentUser;
+    private final AppUserRepository           appUserRepository;
+    private final DeviceFingerprintRepository deviceFingerprintRepository;
+    private final PasswordEncoder             passwordEncoder;
+    private final OtpService                  otpService;
+    private final CompromisedPasswordChecker  compromisedPasswordChecker;
+    private final HandleCurrentUser           handleCurrentUser;
 
     // ── Load user for Spring Security ─────────────────────────
     @Override
@@ -170,27 +175,21 @@ public class AppUserServiceImpl implements AppUserService {
         user.setName(request.name());
         user.setPhone(request.phone());
         user.setAvatar(request.avatar());
-        // no need to call save() — dirty checking handles it inside @Transactional
         return toResponse(user);
     }
 
-    // ── Helpers ───────────────────────────────────────────────
+    // ── Deactivate own account ────────────────────────────────
     @Override
-    public boolean getOtp(String email) {
-        return sendOtp(email);
+    @Transactional
+    public void deactivateMe() {
+        UUID userId = handleCurrentUser.getUserIdOfCurrentUser();
+        AppUser user = appUserRepository.findById(userId)
+                .orElseThrow(() -> new BadRequestException("User not found."));
+        user.setActive(false);
+        log.info("User deactivated their own account: {}", user.getEmail());
     }
 
-    private boolean sendOtp(String email) {
-        try {
-            String otp = otpService.generateOtp();
-            otpService.sendOtp(email, otp);
-            return true;
-        } catch (Exception e) {
-            log.error("Failed to send OTP to {}: {}", email, e.getMessage());
-            return false;
-        }
-    }
-
+    // ── Change password ───────────────────────────────────────
     @Override
     @Transactional
     public void changePassword(ChangePasswordRequest request) {
@@ -212,45 +211,26 @@ public class AppUserServiceImpl implements AppUserService {
 
         user.setPassword(passwordEncoder.encode(request.newPassword()));
         user.setFirstLogin(false);
-        // dirty checking saves automatically inside @Transactional
     }
 
-    // ── Change a user's role (admin) ──────────────────────────
+    // ── Helpers ───────────────────────────────────────────────
     @Override
-    @Transactional
-    public void changeRole(UUID id, String role) {
-        AppUser user = appUserRepository.findById(id)
-                .orElseThrow(() -> new BadRequestException("User not found."));
+    public boolean getOtp(String email) {
+        return sendOtp(email);
+    }
 
-        RoleType newRole;
+    private boolean sendOtp(String email) {
         try {
-            newRole = RoleType.valueOf(role.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new BadRequestException("Invalid role: " + role);
+            String otp = otpService.generateOtp();
+            otpService.sendOtp(email, otp);
+            return true;
+        } catch (Exception e) {
+            log.error("Failed to send OTP to {}: {}", email, e.getMessage());
+            return false;
         }
-
-        user.setRole(newRole);
-        log.info("Role changed to {} for user: {}", newRole, user.getEmail());
-        // dirty checking saves automatically inside @Transactional
     }
 
-    // ── Reset a user's password (admin) ───────────────────────
-    @Override
-    @Transactional
-    public void adminResetPassword(UUID id) {
-        AppUser user = appUserRepository.findById(id)
-                .orElseThrow(() -> new BadRequestException("User not found."));
-
-        String tempPassword = otpService.generateOtp();
-        user.setPassword(passwordEncoder.encode(tempPassword));
-        user.setFirstLogin(true);
-
-        otpService.sendWelcome(user.getEmail(), user.getFirstName());
-        log.info("Password reset by admin for: {}", user.getEmail());
-        // dirty checking saves automatically inside @Transactional
-    }
-
-    // ── Create student/instructor account (admin) ─────────────
+    // ── ADMIN: Create user ────────────────────────────────────
     @Override
     @Transactional
     public AppUserResponse createUser(CreateUserRequest request) {
@@ -277,7 +257,7 @@ public class AppUserServiceImpl implements AppUserService {
         return toResponse(saved);
     }
 
-    // ── List all users (admin) ────────────────────────────────
+    // ── ADMIN: List all users ─────────────────────────────────
     @Override
     public List<AppUserResponse> getAllUsers() {
         return appUserRepository.findAll().stream()
@@ -285,15 +265,104 @@ public class AppUserServiceImpl implements AppUserService {
                 .toList();
     }
 
+    // ── ADMIN: Get single user ────────────────────────────────
+    @Override
+    public AppUserResponse getUserById(UUID id) {
+        AppUser user = appUserRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("User not found."));
+        return toResponse(user);
+    }
+
+    // ── ADMIN: Update user info ───────────────────────────────
+    @Override
+    @Transactional
+    public AppUserResponse adminUpdateUser(UUID id, AdminUpdateUserRequest request) {
+        AppUser user = appUserRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("User not found."));
+
+        user.setName(request.name());
+        user.setPhone(request.phone());
+        user.setStudentId(request.studentId());
+        user.setGeneration(request.generation());
+        user.setAvatar(request.avatar());
+        log.info("Admin updated user: {}", user.getEmail());
+        return toResponse(user);
+    }
+
+    // ── ADMIN: Change role ────────────────────────────────────
+    @Override
+    @Transactional
+    public void changeRole(UUID id, String role) {
+        AppUser user = appUserRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("User not found."));
+
+        RoleType newRole;
+        try {
+            newRole = RoleType.valueOf(role.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestException("Invalid role: " + role);
+        }
+
+        user.setRole(newRole);
+        log.info("Role changed to {} for user: {}", newRole, user.getEmail());
+    }
+
+    // ── ADMIN: Reset password ─────────────────────────────────
+    @Override
+    @Transactional
+    public void adminResetPassword(UUID id) {
+        AppUser user = appUserRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("User not found."));
+
+        String tempPassword = otpService.generateOtp();
+        user.setPassword(passwordEncoder.encode(tempPassword));
+        user.setFirstLogin(true);
+
+        otpService.sendWelcome(user.getEmail(), user.getFirstName());
+        log.info("Password reset by admin for: {}", user.getEmail());
+    }
+
+    // ── ADMIN: Ban / unban user ───────────────────────────────
+    @Override
+    @Transactional
+    public void setUserActive(UUID id, boolean active) {
+        AppUser user = appUserRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("User not found."));
+        user.setActive(active);
+        log.info("User {} set active={} by admin", user.getEmail(), active);
+    }
+
+    // ── ADMIN: Reset device binding ───────────────────────────
+    @Override
+    @Transactional
+    public void adminResetDevice(UUID id) {
+        AppUser user = appUserRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("User not found."));
+
+        deviceFingerprintRepository.findByAppUserId(id).ifPresent(device -> {
+            deviceFingerprintRepository.delete(device);
+            log.info("Device fingerprint deleted for user: {}", user.getEmail());
+        });
+
+        user.setDeviceBound(false);
+        log.info("Device binding reset by admin for: {}", user.getEmail());
+    }
+
+    // ── toResponse ────────────────────────────────────────────
     private AppUserResponse toResponse(AppUser user) {
         return AppUserResponse.builder()
                 .id(user.getId())
                 .name(user.getName())
                 .email(user.getEmail())
                 .phone(user.getPhone())
+                .studentId(user.getStudentId())
+                .generation(user.getGeneration())
                 .role(user.getRole().name())
                 .avatar(user.getAvatar())
                 .verified(user.isVerified())
+                .active(user.isActive())
+                .deviceBound(user.isDeviceBound())
+                .firstLogin(user.isFirstLogin())
                 .createdAt(user.getCreatedAt())
                 .build();
     }
