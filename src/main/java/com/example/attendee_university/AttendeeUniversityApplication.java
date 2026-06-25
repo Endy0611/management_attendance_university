@@ -29,7 +29,8 @@ import org.springframework.web.bind.annotation.CrossOrigin;
                                 """),
         servers = {
                 @Server(url = "http://localhost:9090", description = "Local Development Server"),
-                @Server(url = "http://localhost:8080", description = "Local Development Server")
+                @Server(url = "http://localhost:8080", description = "Local Development Server"),
+                @Server(url = "http://34.21.226.32:8080", description = "Local Development Server"),
         })
 @SecurityScheme(
         name = "bearerAuth",
