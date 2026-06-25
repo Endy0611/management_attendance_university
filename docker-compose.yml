@@ -5,11 +5,17 @@ services:
     environment:
       - POSTGRES_USER=${DATASOURCE_USERNAME}
       - POSTGRES_PASSWORD=${DATASOURCE_PASSWORD}
-      - POSTGRES_DB=${DATASOURCE_URL}
+      - POSTGRES_DB=${DATASOURCE_DB}
     volumes:
-      - data_v3:/var/lib/postgresql
+      - data_v3:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATASOURCE_USERNAME} -d ${DATASOURCE_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:alpine
@@ -44,14 +50,20 @@ services:
     env_file:
       - .env
     depends_on:
-      - db
-      - redis
-      - rustfs
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      rustfs:
+        condition: service_started
     environment:
       - JAVA_OPTS=-Xmx512m -Xms256m
-      - DB_URL=${DATASOURCE_URL}
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/${DATASOURCE_DB}
+      - SPRING_DATASOURCE_USERNAME=${DATASOURCE_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${DATASOURCE_PASSWORD}
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_DATA_REDIS_PORT=6379
+    restart: on-failure
 
 volumes:
   data_v3:
