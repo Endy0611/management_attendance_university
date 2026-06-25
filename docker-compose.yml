@@ -7,7 +7,7 @@ services:
       - POSTGRES_PASSWORD=${DATASOURCE_PASSWORD}
       - POSTGRES_DB=${DATASOURCE_DB}
     volumes:
-      - data_v3:/var/lib/postgresql/data
+      - data_v3:/var/lib/postgresql
     ports:
       - "5432:5432"
     restart: unless-stopped
