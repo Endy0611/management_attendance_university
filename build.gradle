@@ -19,24 +19,36 @@ repositories {
 }
 
 dependencies {
-    // Spring Boot Core, Web & Mail Utilities
+    // Spring Boot Core, Web, Validation, Mail & Real-time Utilities
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
-    implementation 'org.springframework.boot:spring-boot-starter-mail' // Added for sending absence alerts/notifications
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
 
-    // Redis Manager
+    // File Input
+    implementation 'software.amazon.awssdk:s3:2.25.67'
+
+    // Real-Time Socket Interception & Message Security
+    implementation 'org.springframework.security:spring-security-messaging'
+
+    // Redis Manager (Distributed session tracker & WebSocket broker scale-out)
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
+    // Database Migration Engine
+    implementation 'org.flywaydb:flyway-core'
+    implementation 'org.flywaydb:flyway-database-postgresql'
 
     // Model Mapper
     implementation 'org.modelmapper:modelmapper:3.2.0'
 
-    // Open API Documentation
+    // Open API Documentation & Swagger UI (Locked to version 3.x for Spring Boot 4+)
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.2'
     implementation 'org.thymeleaf.extras:thymeleaf-extras-springsecurity6'
 
-    // JSON Web Token (JJWT) Dependencies (Version 0.12.6)
+    // JSON Web Token (JJWT) Dependencies
     implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
@@ -50,10 +62,12 @@ dependencies {
     runtimeOnly 'org.postgresql:postgresql'
 
     // Testing Dependencies
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-thymeleaf-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+    testImplementation 'org.awaitility:awaitility:4.2.2'
     testCompileOnly 'org.projectlombok:lombok'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testAnnotationProcessor 'org.projectlombok:lombok'

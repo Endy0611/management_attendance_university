@@ -30,12 +30,11 @@ import java.time.Instant;
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final AppUserService appUserService;
-    private final JwtService jwtService;
+    private final AppUserService        appUserService;
+    private final JwtService            jwtService;
     private final AuthenticationManager authenticationManager;
-    private final RefreshTokenService refreshTokenService;
+    private final RefreshTokenService   refreshTokenService;
 
-    // ── Private helper — renamed to avoid recursion ───────────
     private void doAuthenticate(String email, String password) {
         try {
             authenticationManager.authenticate(
@@ -49,7 +48,7 @@ public class AuthController {
     }
 
     // ── Login ─────────────────────────────────────────────────
-    @Operation(summary = "User Login")
+    @Operation(summary = "User login")
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<AuthResponse>> login(
             @RequestBody @Valid AuthRequest request,
@@ -163,8 +162,8 @@ public class AuthController {
         return ApiResponse.success("Password reset successfully.", null);
     }
 
-    // ── Change Password (logged-in user, e.g. first login) ────
-    @Operation(summary = "Change password")
+    // ── Change Password ───────────────────────────────────────
+    @Operation(summary = "Change password (logged-in user)")
     @PostMapping("/change-password")
     @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<ApiResponse<Void>> changePassword(
@@ -188,6 +187,15 @@ public class AuthController {
     public ResponseEntity<ApiResponse<AppUserResponse>> updateMe(
             @RequestBody @Valid AppUserUpdateRequest request) {
         return ApiResponse.success("User updated.", appUserService.updateMe(request));
+    }
+
+    // ── Deactivate own account ────────────────────────────────
+    @Operation(summary = "Deactivate (soft-delete) own account")
+    @DeleteMapping("/me")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<Void>> deactivateMe() {
+        appUserService.deactivateMe();
+        return ApiResponse.success("Account deactivated.", null);
     }
 
     // ── Refresh token ─────────────────────────────────────────
