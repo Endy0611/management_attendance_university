@@ -8,7 +8,8 @@ spring:
   application:
     name: attendee_university
   profiles:
-    active: dev
+    active: prod
+
   jpa:
     hibernate:
       ddl-auto: update
@@ -35,6 +36,10 @@ spring:
           auth: true
           starttls:
             enable: true
+
+# MOVED OUT OF THE SPRING BLOCK TO THE ROOT LEVEL
+face-api:
+  url: ${FACE_API_URL:http://localhost:8000}
 
 jwt:
   secret: ${JWT_SECRET}
