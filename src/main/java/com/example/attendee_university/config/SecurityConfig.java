@@ -62,18 +62,10 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-
-        // Allow your local Next.js frontend origin (commonly port 3000)
-        // If your Next.js app is deployed on a domain, add that URL string here instead.
+        // This allows your local Next.js dev server to hit the remote GCP backend
         configuration.setAllowedOrigins(List.of("http://localhost:3000"));
-
-        // Standard restful HTTP methods your frontend needs
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-
-        // Essential headers for tracking Bearer Tokens & JSON content payloads
         configuration.setAllowedHeaders(List.of("Authorization", "Cache-Control", "Content-Type", "Accept"));
-
-        // Allows the browser to send credentials/cookies/auth-headers back and forth
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
