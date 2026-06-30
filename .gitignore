@@ -36,3 +36,5 @@ out/
 ### VS Code ###
 .vscode/
 .env
+proxy_data/
+proxy_letsencrypt/
