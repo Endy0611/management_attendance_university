@@ -4,7 +4,7 @@ pipeline {
     stages {
         stage('Checkout Code') {
             steps {
-                // Pulls the fresh code from your GitHub develop branch
+                // Pulls the fresh code from your GitHub repository
                 checkout scm
             }
         }
@@ -12,20 +12,20 @@ pipeline {
         stage('Build Spring Boot JAR') {
             steps {
                 echo 'Compiling and packaging the Spring Boot application with Gradle...'
-                // Grant execution permissions to the gradle wrapper, then compile the JAR file
                 sh 'chmod +x gradlew'
                 sh './gradlew clean bootJar -x test'
             }
         }
 
-        stage('Deploy Locally') {
+        stage('Deploy Natively to Docker') {
             steps {
-                echo 'Deploying Spring Boot application jar...'
+                echo 'Triggering Docker Compose to rebuild and restart the backend container...'
 
-                // Copy the newly generated JAR file over to your shared volume path
-                sh 'cp build/libs/*.jar /var/www/my-backend-app/app.jar'
+                // Forces Docker Compose to rebuild the backend image using the newly generated JAR file
+                // and restarts it in the background cleanly without taking down the database.
+                sh 'sudo docker compose up -d --build backend'
 
-                echo 'Application JAR updated successfully in /var/www/my-backend-app/app.jar!'
+                echo 'Deployment successful! Your live container has been updated.'
             }
         }
     }
