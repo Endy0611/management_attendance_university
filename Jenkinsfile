@@ -1,3 +1,4 @@
+
 pipeline {
     agent any
 
@@ -23,7 +24,7 @@ pipeline {
 
                 // Forces Docker Compose to rebuild the backend image using the newly generated JAR file
                 // and restarts it in the background cleanly without taking down the database.
-                sh 'sudo docker compose up -d --build backend'
+                sh 'docker compose up -d --build backend'
 
                 echo 'Deployment successful! Your live container has been updated.'
             }

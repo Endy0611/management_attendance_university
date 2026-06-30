@@ -1,0 +1,97 @@
+
+services:
+  proxy-manager:
+    image: 'jc21/nginx-proxy-manager:latest'
+    container_name: proxy_manager
+    restart: unless-stopped
+    ports:
+      - "80:80"   # Public HTTP
+      - "443:443" # Public HTTPS
+      - "81:81"   # Admin panel UI
+    volumes:
+      - ./proxy_data:/data
+      - ./proxy_letsencrypt:/etc/letsencrypt
+    networks:
+      - app-network
+
+  db:
+    image: postgres:18
+    container_name: postgres_container
+    environment:
+      - POSTGRES_USER=${DATASOURCE_USERNAME}
+      - POSTGRES_PASSWORD=${DATASOURCE_PASSWORD}
+      - POSTGRES_DB=${DATASOURCE_DB}
+    volumes:
+      - data_v3:/var/lib/postgresql
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  redis:
+    image: redis:alpine
+    container_name: redis_container
+    ports:
+      - "6379:6379"
+    restart: always
+    networks:
+      - app-network
+
+  rustfs:
+    image: rustfs/rustfs:latest
+    container_name: rustfs_local
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY}
+      RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY}
+    volumes:
+      - rustfs_data:/data
+    command: >
+      --address :9000
+      --console-enable
+      /data
+    networks:
+      - app-network
+
+  backend:
+    build: .
+    container_name: spring_backend
+    mem_limit: 640m
+    ports:
+      - "8080:9090"
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      rustfs:
+        condition: service_started
+    environment:
+      - JAVA_OPTS=-Xmx512m -Xms256m
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/${DATASOURCE_DB}
+      - SPRING_DATASOURCE_USERNAME=${DATASOURCE_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${DATASOURCE_PASSWORD}
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+    restart: on-failure
+    networks:
+      - app-network
+
+volumes:
+  data_v3:
+  rustfs_data:
+
+networks:
+  app-network:
+    driver: bridge
