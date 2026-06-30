@@ -15,6 +15,7 @@ import com.example.attendee_university.model.dto.websocket.AttendanceEvent;
 import com.example.attendee_university.model.dto.websocket.NotificationEvent;
 import com.example.attendee_university.model.entity.AppUser;
 import com.example.attendee_university.model.entity.AttendanceRecord;
+import com.example.attendee_university.model.entity.DeviceFingerprint;
 import com.example.attendee_university.model.entity.Group;
 import com.example.attendee_university.model.entity.GroupMember;
 import com.example.attendee_university.model.entity.GroupSession;
@@ -22,13 +23,18 @@ import com.example.attendee_university.model.entity.Zone;
 import com.example.attendee_university.repository.AppUserRepository;
 import com.example.attendee_university.repository.AttendanceRepository;
 import com.example.attendee_university.repository.CourseRepository;
+import com.example.attendee_university.repository.DeviceFingerprintRepository;
 import com.example.attendee_university.repository.GroupMemberRepository;
 import com.example.attendee_university.repository.GroupRepository;
 import com.example.attendee_university.repository.GroupSessionRepository;
 import com.example.attendee_university.repository.ZoneRepository;
+import com.example.attendee_university.model.dto.face.request.FaceVerifyRequest;
+import com.example.attendee_university.model.dto.face.response.FaceVerifyResponse;
 import com.example.attendee_university.service.AttendanceService;
+import com.example.attendee_university.service.FaceService;
 import com.example.attendee_university.utils.GeoUtils;
 import com.example.attendee_university.utils.HandleCurrentUser;
+import com.example.attendee_university.utils.TokenHashUtil;
 import com.example.attendee_university.websocket.handler.WebSocketPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -46,18 +52,24 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class AttendanceServiceImpl implements AttendanceService {
 
-    private final AttendanceRepository   attendanceRepository;
-    private final GroupSessionRepository groupSessionRepository;
-    private final GroupRepository        groupRepository;
-    private final GroupMemberRepository  groupMemberRepository;
-    private final ZoneRepository         zoneRepository;
-    private final AppUserRepository      appUserRepository;
-    private final CourseRepository       courseRepository;
-    private final HandleCurrentUser      handleCurrentUser;
-    private final GeoUtils               geoUtils;
-    private final WebSocketPublisher     wsPublisher;
+    private final AttendanceRepository        attendanceRepository;
+    private final GroupSessionRepository      groupSessionRepository;
+    private final GroupRepository             groupRepository;
+    private final GroupMemberRepository       groupMemberRepository;
+    private final ZoneRepository              zoneRepository;
+    private final AppUserRepository           appUserRepository;
+    private final CourseRepository            courseRepository;
+    private final DeviceFingerprintRepository deviceFingerprintRepository;
+    private final HandleCurrentUser           handleCurrentUser;
+    private final GeoUtils                    geoUtils;
+    private final TokenHashUtil               tokenHashUtil;
+    private final FaceService                 faceService;
+    private final WebSocketPublisher          wsPublisher;
 
     // ── Check-in (STUDENT) ────────────────────────────────────
+    // Fast-fail order: device binding → geofence → face match.
+    // Cheapest/local checks run first so a student outside the zone, or on
+    // the wrong device, never triggers a call to the face-recognition service.
     @Override
     @Transactional
     public AttendanceResponse checkIn(UUID sessionId, AttendanceCheckInRequest request) {
@@ -83,6 +95,18 @@ public class AttendanceServiceImpl implements AttendanceService {
             throw new BadRequestException("You have already checked in for this session.");
         }
 
+        // ── 1. Device binding check ────────────────────────────
+        DeviceFingerprint boundDevice = deviceFingerprintRepository.findByAppUserId(student.getId())
+                .orElseThrow(() -> new ForbiddenException(
+                        "No device is bound to your account. Bind a device before checking in."));
+
+        String incomingHash = tokenHashUtil.hash(request.deviceFingerprint());
+        if (!boundDevice.getFingerprintHash().equals(incomingHash)) {
+            log.warn("Device mismatch on check-in attempt — student {} session {}", student.getEmail(), sessionId);
+            throw new ForbiddenException("This device is not the one bound to your account.");
+        }
+
+        // ── 2. Geofence check ───────────────────────────────────
         Zone zone = zoneRepository.findById(session.getZoneId())
                 .orElseThrow(() -> new NotFoundException("Zone not found."));
 
@@ -103,6 +127,20 @@ public class AttendanceServiceImpl implements AttendanceService {
             throw new BadRequestException(
                     String.format("You are %.0f m away from the zone (allowed: %.0f m).",
                             distance, zone.getRadiusMeters()));
+        }
+
+        // ── 3. Face verification (existing FaceService) ────────
+        // Only reached once device + geofence pass — this is the expensive,
+        // network-bound call (FaceServiceImpl hits FastAPI's /embed internally),
+        // and it's also the actual anti-proxy control.
+        FaceVerifyResponse faceResult = faceService.verifyFace(
+                FaceVerifyRequest.builder().imageBase64(request.faceImageBase64()).build());
+
+        if (!faceResult.matched()) {
+            log.warn("Face verification failed on check-in — student {} session {} similarity={}",
+                    student.getEmail(), sessionId, faceResult.similarity());
+            throw new BadRequestException(
+                    "Face could not be verified. Please re-scan with better lighting and try again.");
         }
 
         AttendanceStatus status = now.isBefore(session.getStartTime().plusMinutes(15))
