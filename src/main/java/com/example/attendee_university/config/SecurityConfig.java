@@ -62,8 +62,12 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // This allows your local Next.js dev server to hit the remote GCP backend
-        configuration.setAllowedOrigins(List.of("http://localhost:3000"));
+        // Updated to include local development, client frontend domain, and API subdomain if applicable
+        configuration.setAllowedOrigins(List.of(
+                "http://localhost:3000",
+                "https://instantcheck.online",
+                "https://api.instantcheck.online" // Added backend API domain reference for safe cross-origin mapping
+        ));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("Authorization", "Cache-Control", "Content-Type", "Accept"));
         configuration.setAllowCredentials(true);
