@@ -24,7 +24,11 @@ pipeline {
 
                 // Forces Docker Compose to rebuild the backend image using the newly generated JAR file
                 // and restarts it in the background cleanly without taking down the database.
+<<<<<<< Updated upstream
                 sh 'docker compose up -d --build backend'
+=======
+                sh 'docker-compose up -d --build backend'
+>>>>>>> Stashed changes
 
                 echo 'Deployment successful! Your live container has been updated.'
             }
