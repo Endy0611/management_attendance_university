@@ -2,10 +2,19 @@ pipeline {
     agent any
 
     stages {
-        stage('Deploy') {
+        stage('Checkout') {
             steps {
-                echo 'Triggering host deployment script...'
-                sh 'sudo -u hrdeventhub /home/hrdeventhub/management_attendance_university/deploy.sh'
+                checkout scm
+            }
+        }
+
+        stage('Build JAR') {
+            steps {
+                echo 'Compiling Boot application...'
+                sh '''
+                    chmod +x gradlew
+                    ./gradlew clean bootJar -x test
+                '''
             }
         }
     }
