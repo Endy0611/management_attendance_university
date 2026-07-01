@@ -59,15 +59,18 @@ public class SecurityConfig {
         return http.build();
     }
 
-    @Bean
+    @Bean(name = "corsConfigurationSource") // Explicitly named for Spring Boot
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // Updated to include local development, client frontend domain, and API subdomain if applicable
-        configuration.setAllowedOrigins(List.of(
+
+        // Use allowed origin PATTERNS to catch variations cleanly
+        configuration.setAllowedOriginPatterns(List.of(
                 "http://localhost:3000",
                 "https://instantcheck.online",
-                "https://api.instantcheck.online" // Added backend API domain reference for safe cross-origin mapping
+                "https://instantcheck.online/",
+                "https://*.instantcheck.online"
         ));
+
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("Authorization", "Cache-Control", "Content-Type", "Accept"));
         configuration.setAllowCredentials(true);

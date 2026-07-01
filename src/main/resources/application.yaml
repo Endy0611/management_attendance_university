@@ -1,6 +1,7 @@
 server:
   port: 9090
   address: 0.0.0.0
+  forward-headers-strategy: framework # Added to read Nginx proxy headers correctly
 
 spring:
   config:
