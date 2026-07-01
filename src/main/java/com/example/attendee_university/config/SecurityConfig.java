@@ -20,8 +20,6 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
-import static org.springframework.security.config.Customizer.withDefaults;
-
 @Configuration
 @AllArgsConstructor
 @EnableMethodSecurity
@@ -39,7 +37,6 @@ public class SecurityConfig {
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                // Explicitly inject the CORS configuration source right here
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(request ->
@@ -65,20 +62,18 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Explicitly listing combinations so Spring has zero doubt
+        // Removed "*" entirely. Explicitly list the real paths just like your old project.
         configuration.setAllowedOrigins(List.of(
                 "http://localhost:3000",
+                "http://localhost:9090",
                 "https://instantcheck.online",
                 "https://instantcheck.online/"
         ));
 
-        configuration.setAllowedOriginPatterns(List.of(
-                "https://*.instantcheck.online"
-        ));
-
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Cache-Control", "Content-Type", "Accept"));
+        configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
