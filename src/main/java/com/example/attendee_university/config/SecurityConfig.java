@@ -38,7 +38,9 @@ public class SecurityConfig {
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http.cors(withDefaults()) // Looks for the corsConfigurationSource bean below
+        http
+                // Explicitly inject the CORS configuration source right here
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(request ->
                         request
@@ -59,15 +61,18 @@ public class SecurityConfig {
         return http.build();
     }
 
-    @Bean(name = "corsConfigurationSource") // Explicitly named for Spring Boot
+    @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Use allowed origin PATTERNS to catch variations cleanly
-        configuration.setAllowedOriginPatterns(List.of(
+        // Explicitly listing combinations so Spring has zero doubt
+        configuration.setAllowedOrigins(List.of(
                 "http://localhost:3000",
                 "https://instantcheck.online",
-                "https://instantcheck.online/",
+                "https://instantcheck.online/"
+        ));
+
+        configuration.setAllowedOriginPatterns(List.of(
                 "https://*.instantcheck.online"
         ));
 
