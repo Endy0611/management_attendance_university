@@ -39,6 +39,9 @@ public class GroupSessionServiceImpl implements GroupSessionService {
     private final CourseRepository        courseRepository;
     private final HandleCurrentUser handleCurrentUser;
 
+    // sentinel "exclude nothing" id for the overlap queries when creating a brand-new session
+    private static final UUID NO_EXCLUDE = new UUID(0L, 0L);
+
     @Override
     @Transactional
     public GroupSessionResponse createSession(GroupSessionRequest request) {
@@ -50,6 +53,8 @@ public class GroupSessionServiceImpl implements GroupSessionService {
         if (!request.endTime().isAfter(request.startTime())) {
             throw new BadRequestException("End time must be after start time.");
         }
+
+        assertNoTimeConflict(group, zone, request.startTime(), request.endTime(), null);
 
         UUID currentUserId = handleCurrentUser.getUserIdOfCurrentUser();
 
@@ -100,6 +105,8 @@ public class GroupSessionServiceImpl implements GroupSessionService {
         if (!request.endTime().isAfter(request.startTime())) {
             throw new BadRequestException("End time must be after start time.");
         }
+
+        assertNoTimeConflict(group, zone, request.startTime(), request.endTime(), id);
 
         session.setGroupId(group.getId());
         session.setZoneId(zone.getId());
@@ -165,7 +172,48 @@ public class GroupSessionServiceImpl implements GroupSessionService {
                 .toList();
     }
 
+    // ── Upcoming (not-yet-started) sessions for current user's groups ──
+    @Override
+    public List<GroupSessionResponse> getUpcomingSessionsForMyGroups() {
+        AppUser currentUser = handleCurrentUser.getCurrentUser();
+        LocalDateTime now = LocalDateTime.now();
+
+        List<UUID> groupIds;
+        if (currentUser.getRole() == RoleType.ADMIN) {
+            groupIds = groupRepository.findAll().stream().map(Group::getId).toList();
+        } else if (currentUser.getRole() == RoleType.INSTRUCTOR) {
+            groupIds = groupRepository.findByInstructorId(currentUser.getId()).stream()
+                    .map(Group::getId).toList();
+        } else {
+            groupIds = groupMemberRepository.findByAppUserId(currentUser.getId()).stream()
+                    .map(GroupMember::getGroupId).toList();
+        }
+
+        if (groupIds.isEmpty()) return List.of();
+
+        return groupSessionRepository.findUpcomingByGroupIds(groupIds, now).stream()
+                .map(this::toResponseResolved)
+                .toList();
+    }
+
     // ── Helpers ────────────────────────────────────────────────
+    // real-world conflict rules: no room double-booking, no instructor double-booking at the same time
+    private void assertNoTimeConflict(Group group, Zone zone, LocalDateTime startTime, LocalDateTime endTime, UUID excludeSessionId) {
+        UUID excludeId = excludeSessionId != null ? excludeSessionId : NO_EXCLUDE;
+
+        List<GroupSession> zoneConflicts = groupSessionRepository.findOverlappingByZone(zone.getId(), startTime, endTime, excludeId);
+        if (!zoneConflicts.isEmpty()) {
+            throw new BadRequestException("Room \"" + zone.getName() + "\" is already booked for an overlapping time.");
+        }
+
+        List<UUID> instructorGroupIds = groupRepository.findByInstructorId(group.getInstructorId()).stream()
+                .map(Group::getId).toList();
+        List<GroupSession> instructorConflicts = groupSessionRepository.findOverlappingByGroupIds(instructorGroupIds, startTime, endTime, excludeId);
+        if (!instructorConflicts.isEmpty()) {
+            throw new BadRequestException("Instructor already has a session at an overlapping time.");
+        }
+    }
+
     private GroupSession findOrThrow(UUID id) {
         return groupSessionRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Session not found."));

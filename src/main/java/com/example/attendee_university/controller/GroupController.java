@@ -9,12 +9,10 @@ import com.example.attendee_university.service.GroupService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -29,43 +27,36 @@ public class GroupController {
     // ── Create group (Admin) ───────────────────────────────────
     @PostMapping
     @PreAuthorize("hasAuthority('ADMIN')")
-    public ApiResponse<GroupResponse> createGroup(@RequestBody @Valid GroupRequest request) {
-        GroupResponse response = groupService.createGroup(request);
-        return ApiResponse.<GroupResponse>builder()
-                .success(true)
-                .message("Group created.")
-                .status(HttpStatus.CREATED)
-                .payload(response)
-                .timestamp(Instant.now())
-                .build();
+    public ResponseEntity<ApiResponse<GroupResponse>> createGroup(@RequestBody @Valid GroupRequest request) {
+        return ApiResponse.created("Group created.", groupService.createGroup(request));
     }
 
     // ── List all groups (Admin) ────────────────────────────────
     @GetMapping
     @PreAuthorize("hasAuthority('ADMIN')")
-    public List<GroupResponse> getAllGroups() {
-        return groupService.getAllGroups();
+    public ResponseEntity<ApiResponse<List<GroupResponse>>> getAllGroups() {
+        return ApiResponse.success("Groups fetched.", groupService.getAllGroups());
     }
 
     // ── Groups for the current user (any role) ─────────────────
     // ADMIN -> all groups | INSTRUCTOR -> groups they teach | STUDENT -> groups they're enrolled in
     @GetMapping("/me")
-    public List<GroupResponse> getMyGroups() {
-        return groupService.getMyGroups();
+    public ResponseEntity<ApiResponse<List<GroupResponse>>> getMyGroups() {
+        return ApiResponse.success("Groups fetched.", groupService.getMyGroups());
     }
 
     // ── Get one group (Admin, or the owning Instructor) ────────
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('ADMIN', 'INSTRUCTOR')")
-    public GroupResponse getGroup(@PathVariable UUID id) {
-        return groupService.getGroupById(id);
+    public ResponseEntity<ApiResponse<GroupResponse>> getGroup(@PathVariable UUID id) {
+        return ApiResponse.success("Group fetched.", groupService.getGroupById(id));
     }
 
     // ── Update group (Admin) ────────────────────────────────────
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('ADMIN')")
-    public GroupResponse updateGroup(@PathVariable UUID id, @RequestBody @Valid GroupRequest request) {
-        return groupService.updateGroup(id, request);
+    public ResponseEntity<ApiResponse<GroupResponse>> updateGroup(@PathVariable UUID id, @RequestBody @Valid GroupRequest request) {
+        return ApiResponse.success("Group updated.", groupService.updateGroup(id, request));
     }
 
     // ── Delete group (Admin) ────────────────────────────────────
@@ -96,7 +87,7 @@ public class GroupController {
     // ── List members of a group (Admin, or the owning Instructor) ──
     @GetMapping("/{id}/members")
     @PreAuthorize("hasAnyAuthority('ADMIN', 'INSTRUCTOR')")
-    public List<GroupMemberResponse> getMembers(@PathVariable UUID id) {
-        return groupService.getMembers(id);
+    public ResponseEntity<ApiResponse<List<GroupMemberResponse>>> getMembers(@PathVariable UUID id) {
+        return ApiResponse.success("Members fetched.", groupService.getMembers(id));
     }
 }

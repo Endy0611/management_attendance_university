@@ -78,6 +78,13 @@ public class GroupSessionController {
         return ApiResponse.success("Active sessions fetched.", groupSessionService.getMyActiveSessions());
     }
 
+    // ── Upcoming sessions for current user (all roles) ──────────
+    @Operation(summary = "Get not-yet-started sessions for my groups, soonest first")
+    @GetMapping("/me/upcoming")
+    public ResponseEntity<ApiResponse<List<GroupSessionResponse>>> getMyUpcomingSessions() {
+        return ApiResponse.success("Upcoming sessions fetched.", groupSessionService.getUpcomingSessionsForMyGroups());
+    }
+
     // ── Past sessions for current student's enrolled groups ────
     @Operation(summary = "Get all past (ended) sessions for my enrolled groups (STUDENT)")
     @GetMapping("/me/history")

@@ -4,18 +4,23 @@ import com.example.attendee_university.exception.BadRequestException;
 import com.example.attendee_university.exception.ForbiddenException;
 import com.example.attendee_university.exception.NotFoundException;
 import com.example.attendee_university.model.constraint.RoleType;
+import com.example.attendee_university.model.constraint.ShiftType;
 import com.example.attendee_university.model.dto.group.request.AddGroupMembersRequest;
 import com.example.attendee_university.model.dto.group.request.GroupRequest;
 import com.example.attendee_university.model.dto.group.response.GroupMemberResponse;
 import com.example.attendee_university.model.dto.group.response.GroupResponse;
 import com.example.attendee_university.model.entity.AppUser;
+import com.example.attendee_university.model.entity.Batch;
 import com.example.attendee_university.model.entity.Course;
 import com.example.attendee_university.model.entity.Group;
 import com.example.attendee_university.model.entity.GroupMember;
+import com.example.attendee_university.model.entity.Major;
 import com.example.attendee_university.repository.AppUserRepository;
+import com.example.attendee_university.repository.BatchRepository;
 import com.example.attendee_university.repository.CourseRepository;
 import com.example.attendee_university.repository.GroupMemberRepository;
 import com.example.attendee_university.repository.GroupRepository;
+import com.example.attendee_university.repository.MajorRepository;
 import com.example.attendee_university.service.GroupService;
 import com.example.attendee_university.utils.HandleCurrentUser;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +40,8 @@ public class GroupServiceImpl implements GroupService {
     private final GroupMemberRepository groupMemberRepository;
     private final CourseRepository courseRepository;
     private final AppUserRepository appUserRepository;
+    private final BatchRepository batchRepository;
+    private final MajorRepository majorRepository;
     private final HandleCurrentUser handleCurrentUser;
 
     // ── Create group (Admin) ───────────────────────────────────
@@ -50,12 +57,22 @@ public class GroupServiceImpl implements GroupService {
             throw new BadRequestException("Assigned user is not an instructor.");
         }
 
+        if (request.batchId() != null && !batchRepository.existsById(request.batchId())) {
+            throw new NotFoundException("Batch not found.");
+        }
+        if (request.majorId() != null && !majorRepository.existsById(request.majorId())) {
+            throw new NotFoundException("Major not found.");
+        }
+
         Group group = Group.builder()
                 .courseId(course.getId())
                 .name(request.name())
                 .instructorId(instructor.getId())
                 .capacity(request.capacity())
                 .semester(request.semester())
+                .batchId(request.batchId())
+                .majorId(request.majorId())
+                .shift(parseShift(request.shift()))
                 .build();
 
         Group saved = groupRepository.save(group);
@@ -93,6 +110,13 @@ public class GroupServiceImpl implements GroupService {
             throw new BadRequestException("Assigned user is not an instructor.");
         }
 
+        if (request.batchId() != null && !batchRepository.existsById(request.batchId())) {
+            throw new NotFoundException("Batch not found.");
+        }
+        if (request.majorId() != null && !majorRepository.existsById(request.majorId())) {
+            throw new NotFoundException("Major not found.");
+        }
+
         long currentMemberCount = groupMemberRepository.countByGroupId(id);
         if (request.capacity() < currentMemberCount) {
             throw new BadRequestException(
@@ -104,6 +128,9 @@ public class GroupServiceImpl implements GroupService {
         group.setInstructorId(instructor.getId());
         group.setCapacity(request.capacity());
         group.setSemester(request.semester());
+        group.setBatchId(request.batchId());
+        group.setMajorId(request.majorId());
+        group.setShift(parseShift(request.shift()));
         // dirty checking saves automatically inside @Transactional
 
         return toResponse(group);
@@ -227,21 +254,42 @@ public class GroupServiceImpl implements GroupService {
         throw new ForbiddenException("You do not have permission to manage this group.");
     }
 
+    private ShiftType parseShift(String shift) {
+        if (shift == null || shift.isBlank()) return null;
+        try {
+            return ShiftType.valueOf(shift.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestException("Invalid shift: " + shift + ". Must be MORNING, AFTERNOON, or EVENING.");
+        }
+    }
+
     private GroupResponse toResponse(Group group) {
         Course course = courseRepository.findById(group.getCourseId()).orElse(null);
         AppUser instructor = appUserRepository.findById(group.getInstructorId()).orElse(null);
         long memberCount = groupMemberRepository.countByGroupId(group.getId());
 
+        Batch batch = group.getBatchId() != null
+                ? batchRepository.findById(group.getBatchId()).orElse(null)
+                : null;
+        Major major = group.getMajorId() != null
+                ? majorRepository.findById(group.getMajorId()).orElse(null)
+                : null;
+
         return GroupResponse.builder()
                 .id(group.getId())
                 .courseId(group.getCourseId())
                 .courseCode(course != null ? course.getCode() : null)
-                .name(group.getName())
                 .instructorId(group.getInstructorId())
                 .instructorName(instructor != null ? instructor.getName() : null)
+                .name(group.getName())
                 .capacity(group.getCapacity())
                 .memberCount((int) memberCount)
                 .semester(group.getSemester())
+                .batchId(group.getBatchId())
+                .batchName(batch != null ? batch.getName() : null)
+                .majorId(group.getMajorId())
+                .majorName(major != null ? major.getName() : null)
+                .shift(group.getShift() != null ? group.getShift().name() : null)
                 .createdAt(group.getCreatedAt())
                 .build();
     }

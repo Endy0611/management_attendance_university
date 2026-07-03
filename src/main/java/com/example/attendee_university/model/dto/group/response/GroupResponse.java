@@ -14,13 +14,24 @@ import java.util.UUID;
 @AllArgsConstructor
 public class GroupResponse {
     private UUID id;
+
+    // legacy default course/instructor — see TimetableSlot for the
+    // actual multi-course weekly schedule
     private UUID courseId;
     private String courseCode;
-    private String name;
     private UUID instructorId;
     private String instructorName;
+
+    private String name;
     private int capacity;
     private int memberCount;
     private String semester;
+
+    private UUID batchId;
+    private String batchName;
+    private UUID majorId;
+    private String majorName;
+    private String shift;
+
     private LocalDateTime createdAt;
 }

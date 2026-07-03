@@ -34,6 +34,10 @@ public class GroupSession {
     @Column(name = "created_by", nullable = false)
     private UUID createdBy;
 
+    // set when this session was auto-generated from a TimetableSlot template; null for one-off sessions
+    @Column(name = "timetable_slot_id")
+    private UUID timetableSlotId;
+
     @Column(name = "created_at", updatable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();

@@ -23,4 +23,7 @@ public interface GroupSessionService {
     List<GroupSessionResponse> getMyActiveSessions();
 
     List<GroupSessionResponse> getPastSessionsForMyGroups();
+
+    // not-yet-started sessions for the current user's groups, soonest first
+    List<GroupSessionResponse> getUpcomingSessionsForMyGroups();
 }

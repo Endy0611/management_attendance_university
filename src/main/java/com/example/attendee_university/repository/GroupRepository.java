@@ -9,4 +9,7 @@ import java.util.UUID;
 public interface GroupRepository extends JpaRepository<Group, UUID> {
     List<Group> findByCourseId(UUID courseId);
     List<Group> findByInstructorId(UUID instructorId);
+    List<Group> findByBatchId(UUID batchId);
+    List<Group> findByMajorId(UUID majorId);
+    List<Group> findByBatchIdAndMajorId(UUID batchId, UUID majorId);
 }
