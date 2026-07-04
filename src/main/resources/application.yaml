@@ -50,7 +50,8 @@ rustfs:
     secret: ${RUSTFS_SECRET_KEY}
   bucket:
     name: ${RUSTFS_BUCKET_NAME:demo-file-upload}
-
+face-api:
+  url: ${FACE_API_URL:http://localhost:8000}
 logging:
   level:
     root: INFO
