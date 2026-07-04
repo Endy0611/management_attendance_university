@@ -12,7 +12,6 @@
         - ./proxy_letsencrypt:/etc/letsencrypt
       networks:
         - app-network
-
     db:
       image: postgres:18
       container_name: postgres_container
@@ -34,7 +33,6 @@
         retries: 5
       networks:
         - app-network
-
     redis:
       image: redis:alpine
       container_name: redis_container
@@ -43,7 +41,6 @@
       restart: always
       networks:
         - app-network
-
     rustfs:
       image: rustfs/rustfs:latest
       container_name: rustfs_local
@@ -62,7 +59,16 @@
         /data
       networks:
         - app-network
-
+    face_api:
+      build: ../face-api
+      container_name: face_api
+      restart: unless-stopped
+      ports:
+        - "8000:8000"
+      volumes:
+        - face_api_models:/root/.deepface
+      networks:
+        - app-network
     backend:
       build: .
       container_name: spring_backend
@@ -78,6 +84,8 @@
           condition: service_started
         rustfs:
           condition: service_started
+        face_api:
+          condition: service_started
       environment:
         - JAVA_OPTS=-Xmx512m -Xms256m
         - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/${DATASOURCE_DB}
@@ -88,11 +96,10 @@
       restart: on-failure
       networks:
         - app-network
-
   volumes:
     data_v3:
     rustfs_data:
-
+    face_api_models:
   networks:
     app-network:
       driver: bridge
