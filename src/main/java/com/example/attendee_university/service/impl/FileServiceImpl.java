@@ -77,7 +77,7 @@ public class FileServiceImpl implements FileService {
         }
 
         String fileUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
-                .path("/api/v5/files/preview-file")
+                .path("/api/v1/files/preview-file")
                 .queryParam("key", key)
                 .toUriString();
 
