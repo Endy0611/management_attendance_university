@@ -68,8 +68,8 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(List.of(
                 "http://localhost:3000",
                 "http://localhost:9090",
-                "https://instantcheck.online",
-                "https://instantcheck.online/"
+                "https://api.instantcheck.online",
+                "https://api.instantcheck.online/"
         ));
 
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));

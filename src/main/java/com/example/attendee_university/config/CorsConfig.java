@@ -16,7 +16,7 @@ public class CorsConfig implements WebMvcConfigurer {
     public void addCorsMappings(CorsRegistry registry) {
         registry
                 .addMapping("/**")
-                .allowedOrigins("http://localhost:3000", "http://localhost:9090", "https://instantcheck.online/", "https://instantcheck.online")
+                .allowedOrigins("http://localhost:3000", "http://localhost:9090", "https://instantcheck.online/", "https://instantcheck.online", "https://api.instantcheck.online/", "https://api.instantcheck.online")
                 .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .allowCredentials(true)

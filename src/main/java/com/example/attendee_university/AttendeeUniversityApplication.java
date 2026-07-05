@@ -30,7 +30,7 @@ import org.springframework.web.bind.annotation.CrossOrigin;
         servers = {
                 @Server(url = "http://localhost:9090", description = "Local Development Server"),
                 @Server(url = "http://localhost:8080", description = "Local Development Server"),
-                @Server(url = "https://instantcheck.online", description = "Production Server")
+                @Server(url = "https://api.instantcheck.online", description = "Production Server")
         })
 @SecurityScheme(
         name = "bearerAuth",
