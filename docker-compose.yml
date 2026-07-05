@@ -59,14 +59,14 @@
         /data
       networks:
         - app-network
-    face_api:
+    face-api:
       build: ../face-api
-      container_name: face_api
+      container_name: face-api
       restart: unless-stopped
       ports:
         - "8000:8000"
       volumes:
-        - face_api_models:/root/.deepface
+        - face-api_models:/root/.deepface
       networks:
         - app-network
     backend:
@@ -84,7 +84,7 @@
           condition: service_started
         rustfs:
           condition: service_started
-        face_api:
+        face-api:
           condition: service_started
       environment:
         - JAVA_OPTS=-Xmx512m -Xms256m
@@ -99,7 +99,7 @@
   volumes:
     data_v3:
     rustfs_data:
-    face_api_models:
+    face-api_models:
   networks:
     app-network:
       driver: bridge
