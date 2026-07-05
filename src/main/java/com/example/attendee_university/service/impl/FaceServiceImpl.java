@@ -37,6 +37,11 @@ public class FaceServiceImpl implements FaceService {
 
     @Value("${face-api.url}")
     private String faceApiUrl;
+    
+    @jakarta.annotation.PostConstruct
+public void logFaceApiUrl() {
+    log.info("Resolved face-api.url = [{}]", faceApiUrl);
+}
 
     private static final double SIMILARITY_THRESHOLD = 0.80;
 
