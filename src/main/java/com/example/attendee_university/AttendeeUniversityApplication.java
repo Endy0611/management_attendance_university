@@ -21,8 +21,8 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 @OpenAPIDefinition(
         info =
         @Info(
-                title = "Management University API V2",
-                version = "V5",
+                title = "Management University API V1",
+                version = "V1",
                 description =
                         """
                                 ...
