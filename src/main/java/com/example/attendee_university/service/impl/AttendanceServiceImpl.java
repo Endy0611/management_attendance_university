@@ -32,6 +32,7 @@ import com.example.attendee_university.model.dto.face.request.FaceVerifyRequest;
 import com.example.attendee_university.model.dto.face.response.FaceVerifyResponse;
 import com.example.attendee_university.service.AttendanceService;
 import com.example.attendee_university.service.FaceService;
+import com.example.attendee_university.service.NotificationService;
 import com.example.attendee_university.utils.GeoUtils;
 import com.example.attendee_university.utils.HandleCurrentUser;
 import com.example.attendee_university.utils.TokenHashUtil;
@@ -64,6 +65,7 @@ public class AttendanceServiceImpl implements AttendanceService {
     private final GeoUtils                    geoUtils;
     private final TokenHashUtil               tokenHashUtil;
     private final FaceService                 faceService;
+    private final NotificationService         notificationService;
     private final WebSocketPublisher          wsPublisher;
 
     // ── Check-in (STUDENT) ────────────────────────────────────
@@ -139,6 +141,17 @@ public class AttendanceServiceImpl implements AttendanceService {
         if (!faceResult.matched()) {
             log.warn("Face verification failed on check-in — student {} session {} similarity={}",
                     student.getEmail(), sessionId, faceResult.similarity());
+
+            // Parity with the geofence-failure branch above: give the student
+            // the same live feedback channel instead of a silent thrown error.
+            wsPublisher.notifyUser(student.getEmail(), NotificationEvent.builder()
+                    .type(NotificationType.CHECK_IN_FAILED)
+                    .title("Face not recognized")
+                    .message("Your face could not be verified. Try re-scanning with better lighting, "
+                            + "or ask your instructor for help if this keeps happening.")
+                    .timestamp(LocalDateTime.now())
+                    .build());
+
             throw new BadRequestException(
                     "Face could not be verified. Please re-scan with better lighting and try again.");
         }
@@ -183,6 +196,51 @@ public class AttendanceServiceImpl implements AttendanceService {
                 .build());
 
         return toResponse(record, student);
+    }
+
+    // ── Student escalation: "I'm the real owner, face keeps failing" ──
+    // No device/geofence/face re-check here on purpose — this is a request
+    // for a human (instructor/admin) to look at manualOverride(), not another
+    // automated attempt. Notifies whoever created the session (session.createdBy),
+    // which is the instructor for instructor-created sessions and the admin
+    // for one-off admin-created ones — always a real, resolvable person.
+    @Override
+    @Transactional
+    public void requestCheckInHelp(UUID sessionId) {
+        AppUser student = handleCurrentUser.getCurrentUser();
+
+        if (student.getRole() != RoleType.STUDENT) {
+            throw new ForbiddenException("Only students can request check-in help.");
+        }
+
+        GroupSession session = groupSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new NotFoundException("Session not found."));
+
+        if (!groupMemberRepository.existsByGroupIdAndAppUserId(session.getGroupId(), student.getId())) {
+            throw new ForbiddenException("You are not enrolled in this group.");
+        }
+
+        if (attendanceRepository.existsBySessionIdAndStudentId(sessionId, student.getId())) {
+            throw new BadRequestException("You have already checked in for this session.");
+        }
+
+        Group group = groupRepository.findById(session.getGroupId())
+                .orElseThrow(() -> new NotFoundException("Group not found."));
+
+        String message = String.format(
+                "%s (%s) can't check in to %s — face verification keeps failing. They may need a manual override.",
+                student.getName(), student.getEmail(), group.getName());
+
+        // session.createdBy is always set (instructor for instructor-created
+        // sessions, admin for one-off ones) — persists to DB + live WS push.
+        notificationService.send(
+                session.getCreatedBy(),
+                NotificationType.CHECK_IN_HELP_REQUESTED,
+                "Student needs check-in help",
+                message);
+
+        log.info("Check-in help requested — student {} session {} notified createdBy={}",
+                student.getEmail(), sessionId, session.getCreatedBy());
     }
 
     // ── Session attendance list ───────────────────────────────

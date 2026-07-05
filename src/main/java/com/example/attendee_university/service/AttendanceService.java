@@ -25,4 +25,12 @@ public interface AttendanceService {
     AttendanceResponse manualOverride(UUID sessionId, UUID studentId, String status);
 
     List<StudentAttendanceResponse> getSessionHistoryForMyGroups();
+
+    /**
+     * Student-initiated "I am the real owner but face verification keeps
+     * failing" escalation. Notifies whoever created the session (instructor,
+     * or admin for one-off sessions) so they can manualOverride() the student
+     * in, without re-running device/geofence/face checks.
+     */
+    void requestCheckInHelp(UUID sessionId);
 }

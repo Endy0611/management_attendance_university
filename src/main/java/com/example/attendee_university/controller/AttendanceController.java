@@ -37,6 +37,15 @@ public class AttendanceController {
         return ApiResponse.success("Checked in successfully.", response);
     }
 
+    // ── Student escalation when face verification keeps failing ──
+    @Operation(summary = "Request manual check-in help from instructor/admin (STUDENT)")
+    @PostMapping("/sessions/{sessionId}/request-help")
+    @PreAuthorize("hasAuthority('STUDENT')")
+    public ResponseEntity<ApiResponse<Void>> requestCheckInHelp(@PathVariable UUID sessionId) {
+        attendanceService.requestCheckInHelp(sessionId);
+        return ApiResponse.success("Your instructor has been notified.", null);
+    }
+
     // ── Attendance list for a session ─────────────────────────
     @Operation(summary = "Get all attendance records for a session (ADMIN / INSTRUCTOR)")
     @GetMapping("/sessions/{sessionId}")
