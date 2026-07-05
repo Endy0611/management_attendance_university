@@ -1,6 +1,7 @@
 package com.example.attendee_university.exception;
 
 
+import com.example.attendee_university.model.dto.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import java.net.URI;
@@ -328,5 +329,17 @@ public class GlobalException {
                 "Database Error",
                 "An unexpected database error occurred.",
                 request);
+    }
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<ApiResponse<Void>> handleRateLimit(RateLimitExceededException ex) {
+        return new ResponseEntity<>(
+                ApiResponse.<Void>builder()
+                        .success(false)
+                        .message(ex.getMessage())
+                        .status(HttpStatus.TOO_MANY_REQUESTS)
+                        .timestamp(Instant.now())
+                        .build(),
+                HttpStatus.TOO_MANY_REQUESTS
+        );
     }
 }

@@ -1,5 +1,6 @@
 package com.example.attendee_university.controller;
 
+import com.example.attendee_university.annotation.RateLimited;
 import com.example.attendee_university.exception.BadRequestException;
 import com.example.attendee_university.jwt.JwtService;
 import com.example.attendee_university.model.dto.ApiResponse;
@@ -47,8 +48,8 @@ public class AuthController {
         }
     }
 
-    // ── Login ─────────────────────────────────────────────────
     @Operation(summary = "User login")
+    @RateLimited(scope = "login", maxRequests = 5, windowSeconds = 60)
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<AuthResponse>> login(
             @RequestBody @Valid AuthRequest request,
@@ -85,8 +86,8 @@ public class AuthController {
         );
     }
 
-    // ── Register ──────────────────────────────────────────────
     @Operation(summary = "Register a new user")
+    @RateLimited(scope = "register", maxRequests = 3, windowSeconds = 3600)
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<AppUserResponse>> register(
             @RequestBody @Valid AppUserRequest request) {
@@ -105,8 +106,8 @@ public class AuthController {
         );
     }
 
-    // ── Verify OTP ────────────────────────────────────────────
     @Operation(summary = "Verify email with OTP")
+    @RateLimited(scope = "verify-otp", maxRequests = 5, windowSeconds = 60)
     @PostMapping("/verify-otp")
     public ResponseEntity<ApiResponse<Void>> verifyOtp(
             @RequestParam String email,
@@ -123,8 +124,7 @@ public class AuthController {
         );
     }
 
-    // ── Resend OTP ────────────────────────────────────────────
-    @Operation(summary = "Resend verification OTP")
+    @RateLimited(scope = "resend-otp", maxRequests = 3, windowSeconds = 300)
     @PostMapping("/resend")
     public ResponseEntity<ApiResponse<Void>> resend(@RequestParam String email) {
         appUserService.resendOtp(email);
@@ -138,7 +138,7 @@ public class AuthController {
         );
     }
 
-    // ── Forgot Password ───────────────────────────────────────
+    @RateLimited(scope = "forgot-password", maxRequests = 3, windowSeconds = 300)
     @PostMapping("/forgot-password")
     public ResponseEntity<ApiResponse<Void>> forgotPassword(
             @RequestBody @Valid ForgotPasswordRequest request) {
@@ -146,7 +146,7 @@ public class AuthController {
         return ApiResponse.success("OTP sent to your email.", null);
     }
 
-    // ── Verify Forgot Password OTP ────────────────────────────
+    @RateLimited(scope = "verify-forgot-password", maxRequests = 5, windowSeconds = 60)
     @PostMapping("/verify-forgot-password")
     public ResponseEntity<ApiResponse<String>> verifyForgotPassword(
             @RequestBody @Valid VerifyForgotPasswordRequest request) {
@@ -154,7 +154,7 @@ public class AuthController {
         return ApiResponse.success("OTP verified.", resetToken);
     }
 
-    // ── Reset Password ────────────────────────────────────────
+    @RateLimited(scope = "reset-password", maxRequests = 5, windowSeconds = 60)
     @PostMapping("/reset-password")
     public ResponseEntity<ApiResponse<Void>> resetPassword(
             @RequestBody @Valid ResetPasswordRequest request) {
