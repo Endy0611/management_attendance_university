@@ -41,4 +41,24 @@ public class GroupSession {
     @Column(name = "created_at", updatable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    // ── Single source of truth for session state ───────────────
+    // Convention: [startTime, endTime) — inclusive of the start instant,
+    // exclusive of the end instant. Every place in the codebase that needs
+    // to know if a session is "active" must call this instead of rolling
+    // its own isBefore/isAfter check.
+    @Transient
+    public boolean isActive(LocalDateTime now) {
+        return !now.isBefore(startTime) && now.isBefore(endTime);
+    }
+
+    @Transient
+    public boolean isUpcoming(LocalDateTime now) {
+        return now.isBefore(startTime);
+    }
+
+    @Transient
+    public boolean isExpired(LocalDateTime now) {
+        return !now.isBefore(endTime);
+    }
 }

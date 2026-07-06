@@ -42,11 +42,16 @@ public class SessionSchedular {
     @Scheduled(fixedDelay = 60_000)
     public void checkSessions() {
         LocalDateTime now = LocalDateTime.now();
-        List<GroupSession> all = groupSessionRepository.findAll();
+        // Only pull sessions that could plausibly need an OPENED/CLOSED
+        // transition right now — not the entire history of every session
+        // ever created. Anything that ended more than a day ago is long
+        // past both the OPENED (2h) and CLOSED (24h) Redis dedup TTLs below,
+        // so it can never fire again and doesn't need to be loaded.
+        List<GroupSession> candidates = groupSessionRepository.findRelevantForScheduler(now.minusHours(24));
 
-        for (GroupSession session : all) {
-            boolean active  = !now.isBefore(session.getStartTime()) && now.isBefore(session.getEndTime());
-            boolean expired = now.isAfter(session.getEndTime());
+        for (GroupSession session : candidates) {
+            boolean active  = session.isActive(now);
+            boolean expired = session.isExpired(now);
 
             if (active && !alreadySent(OPENED_KEY, session)) {
                 broadcastOpened(session);

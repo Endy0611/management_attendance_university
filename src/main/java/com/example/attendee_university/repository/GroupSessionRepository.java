@@ -44,6 +44,13 @@ public interface GroupSessionRepository extends JpaRepository<GroupSession, UUID
                                                  @Param("endTime") LocalDateTime endTime,
                                                  @Param("excludeId") UUID excludeId);
 
+    // ── Scheduler polling window ─────────────────────────────────
+    // Sessions that ended before `since` are already fully settled
+    // (both OPENED/CLOSED broadcasts fired and their Redis dedup keys
+    // expired) — no need to keep loading them every 60s forever.
+    @Query("SELECT s FROM GroupSession s WHERE s.endTime >= :since")
+    List<GroupSession> findRelevantForScheduler(@Param("since") LocalDateTime since);
+
     // ── Generated-session bookkeeping for TimetableSlot ─────────
     boolean existsByTimetableSlotIdAndStartTime(UUID timetableSlotId, LocalDateTime startTime);
 

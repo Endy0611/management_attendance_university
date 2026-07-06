@@ -176,3 +176,144 @@ RAISE NOTICE 'Seed data inserted successfully.';
     RAISE NOTICE 'Admin: admin@attendee.edu | Instructor: sarah.chen@attendee.edu | Student: endy.student@attendee.edu';
 
 END $$;
+
+
+
+
+
+
+
+
+
+-- =============================================================================
+-- seed-checkin-flow.sql
+-- Best-guess table/column names based on your OpenAPI DTOs (snake_case).
+-- ADJUST NAMES to match your real schema if they differ — Postgres will just
+-- throw "relation/column does not exist" rather than insert somewhere wrong.
+--
+-- Password for BOTH seeded users is:  Test1234!
+-- Hash below is a real bcrypt hash (cost 10) for that password, generated
+-- with Python's `bcrypt` library. Spring Security's BCryptPasswordEncoder
+-- verifies $2a$/$2b$/$2y$ hashes identically, so this should work as-is.
+-- =============================================================================
+
+-- Needed for gen_random_uuid(); Postgres 13+ usually has this built in.
+-- If it errors, uncomment the next line:
+-- CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+DO $$
+    DECLARE
+        v_password_hash   text := '$2b$10$M5LD9YF3Mm0T3vfiOna4Z.QXU1XwmgzKrjHUkfNktfte8BMertPfS'; -- Test1234!
+
+        v_zone_id         uuid := gen_random_uuid();
+        v_major_id        uuid := gen_random_uuid();
+        v_course_id       uuid := gen_random_uuid();
+        v_instructor_id   uuid := gen_random_uuid();
+        v_student_id      uuid := gen_random_uuid();
+        v_group_id        uuid := gen_random_uuid();
+        v_session_id      uuid := gen_random_uuid();
+
+        v_now             timestamptz := now();
+    BEGIN
+
+        -- ── Zone ───────────────────────────────────────────────────────────────
+        INSERT INTO zones (id, name, latitude, longitude, radius_meters, created_by, created_at)
+        VALUES (v_zone_id, 'Seed Test Zone', 11.5564, 104.9282, 100, v_instructor_id, v_now);
+
+        -- ── Major ──────────────────────────────────────────────────────────────
+        INSERT INTO majors (id, name, code, created_at)
+        VALUES (v_major_id, 'Seed Test Major', 'SEED01', v_now);
+
+        -- ── Course ─────────────────────────────────────────────────────────────
+        INSERT INTO courses (id, name, code, created_at)
+        VALUES (v_course_id, 'Seed Test Course', 'CRS01', v_now);
+
+        -- ── Instructor user ────────────────────────────────────────────────────
+        INSERT INTO app_users (
+            id, name, email, password, phone, student_id, generation, role,
+            avatar, verified, active, device_bound, first_login, created_at
+        ) VALUES (
+                     v_instructor_id, 'Seed Test Instructor', 'seed.instructor@test.local', v_password_hash,
+                     NULL, NULL, NULL, 'INSTRUCTOR',
+                     NULL, true, true, false, false, v_now
+                 );
+
+        -- ── Student user ───────────────────────────────────────────────────────
+        INSERT INTO app_users (
+            id, name, email, password, phone, student_id, generation, role,
+            avatar, verified, active, device_bound, first_login, created_at
+        ) VALUES (
+                     v_student_id, 'Seed Test Student', 'seed.student@test.local', v_password_hash,
+                     NULL, 'STU-SEED-01', 2026, 'STUDENT',
+                     NULL, true, true, false, false, v_now
+                 );
+
+        -- ── Group (real academic hierarchy: instructor, major, shift) ──────────
+        -- batch_id intentionally left NULL — no BatchController to source one from.
+        INSERT INTO groups (
+            id, course_id, instructor_id, name, capacity, semester,
+            batch_id, major_id, shift, created_at
+        ) VALUES (
+                     v_group_id, v_course_id, v_instructor_id, 'Seed Test Group', 50, 'Seed',
+                     NULL, v_major_id, 'Morning', v_now
+                 );
+
+        -- ── Group membership ───────────────────────────────────────────────────
+        INSERT INTO group_members (group_id, student_id, joined_at)
+        VALUES (v_group_id, v_student_id, v_now);
+
+        -- ── Active session — starts 5 min ago, ends in 2 hours ─────────────────
+        INSERT INTO group_sessions (
+            id, group_id, zone_id, start_time, end_time, created_at
+        ) VALUES (
+                     v_session_id, v_group_id, v_zone_id,
+                     v_now - interval '5 minutes', v_now + interval '2 hours', v_now
+                 );
+
+        -- ── Device binding for the student ──────────────────────────────────────
+        INSERT INTO devices (id, user_id, fingerprint, device_info, created_at)
+        VALUES (gen_random_uuid(), v_student_id, 'seed-device-fingerprint-01', 'Seed script test device', v_now);
+
+        UPDATE app_users SET device_bound = true WHERE id = v_student_id;
+
+        -- ── Print the IDs you'll need for testing ───────────────────────────────
+        RAISE NOTICE '';
+        RAISE NOTICE '=== Seed data created ===';
+        RAISE NOTICE 'zone_id:        %', v_zone_id;
+        RAISE NOTICE 'major_id:       %', v_major_id;
+        RAISE NOTICE 'course_id:      %', v_course_id;
+        RAISE NOTICE 'instructor_id:  %', v_instructor_id;
+        RAISE NOTICE 'student_id:     %', v_student_id;
+        RAISE NOTICE 'group_id:       %', v_group_id;
+        RAISE NOTICE 'session_id:     %', v_session_id;
+        RAISE NOTICE 'zone coords:    11.5564, 104.9282  (radius 100m)';
+        RAISE NOTICE 'device fingerprint: seed-device-fingerprint-01';
+        RAISE NOTICE 'login (both users): password = Test1234!';
+        RAISE NOTICE '  instructor: seed.instructor@test.local';
+        RAISE NOTICE '  student:    seed.student@test.local';
+        RAISE NOTICE '';
+        RAISE NOTICE 'Face is NOT registered — log in as the student in the app and';
+        RAISE NOTICE 'register a face, or check-in will correctly reject at the';
+        RAISE NOTICE 'face-match step. To test check-in fully, use lat=11.5564,';
+        RAISE NOTICE 'lng=104.9282 (inside zone) and device fingerprint above.';
+
+    END $$;
+
+
+SELECT column_name, data_type
+FROM information_schema.columns
+WHERE table_name = 'app_users'
+ORDER BY ordinal_position;
+
+
+SELECT table_name, column_name, data_type
+FROM information_schema.columns
+WHERE table_name IN ('zones', 'majors', 'courses', 'groups', 'group_members', 'group_sessions', 'devices')
+ORDER BY table_name, ordinal_position;
+
+SET TIME ZONE 'Asia/Phnom_Penh';
+
+UPDATE group_sessions
+SET start_time = now() - interval '5 minutes',
+    end_time   = now() + interval '24 hours'
+WHERE id = '81ce8701-93b8-4d03-a571-07b294882cef';

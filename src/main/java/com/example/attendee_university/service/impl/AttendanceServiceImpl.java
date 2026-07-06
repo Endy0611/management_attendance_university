@@ -85,7 +85,7 @@ public class AttendanceServiceImpl implements AttendanceService {
                 .orElseThrow(() -> new NotFoundException("Session not found."));
 
         LocalDateTime now = LocalDateTime.now();
-        if (now.isBefore(session.getStartTime()) || now.isAfter(session.getEndTime())) {
+        if (!session.isActive(now)) {
             throw new BadRequestException("This session is not currently active.");
         }
 
@@ -340,7 +340,7 @@ public class AttendanceServiceImpl implements AttendanceService {
 
         return groupIds.stream()
                 .flatMap(groupId -> groupSessionRepository.findByGroupId(groupId).stream())
-                .filter(session -> session.getEndTime().isBefore(now))
+                .filter(session -> session.isExpired(now))
                 .map(session -> {
                     Group group = groupRepository.findById(session.getGroupId()).orElse(null);
                     String courseCode = group != null

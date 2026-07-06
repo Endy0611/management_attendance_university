@@ -167,7 +167,7 @@ public class GroupSessionServiceImpl implements GroupSessionService {
 
         return groupIds.stream()
                 .flatMap(groupId -> groupSessionRepository.findByGroupId(groupId).stream())
-                .filter(session -> session.getEndTime().isBefore(now))
+                .filter(session -> session.isExpired(now))
                 .map(this::toResponseResolved)
                 .toList();
     }
@@ -226,8 +226,7 @@ public class GroupSessionServiceImpl implements GroupSessionService {
     }
 
     private GroupSessionResponse toResponse(GroupSession session, Group group, Zone zone) {
-        boolean active = LocalDateTime.now().isAfter(session.getStartTime())
-                && LocalDateTime.now().isBefore(session.getEndTime());
+        boolean active = session.isActive(LocalDateTime.now());
 
         // resolve courseCode via CourseRepository
         String courseCode = null;
