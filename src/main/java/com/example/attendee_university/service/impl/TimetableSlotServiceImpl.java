@@ -37,6 +37,7 @@ public class TimetableSlotServiceImpl implements TimetableSlotService {
     private final ZoneRepository zoneRepository;
     private final CourseRepository courseRepository;
     private final AppUserRepository appUserRepository;
+    private final HolidayRepository holidayRepository;
     private final HandleCurrentUser handleCurrentUser;
 
     // ── Create slot (Admin, or the owning Instructor) ───────────
@@ -266,6 +267,12 @@ public class TimetableSlotServiceImpl implements TimetableSlotService {
 
     // walks forward week by week from validFrom, creating the dated GroupSession occurrences.
     // idempotent: skips any occurrence that's already been generated for this slot.
+    // holiday-aware: a date with a matching Holiday row is skipped entirely (not counted
+    // toward totalSessions) and the loop keeps walking forward until it finds totalSessions
+    // real, non-holiday occurrences — so totalSessions always means "this many actual
+    // classes", not "this many calendar weeks starting from validFrom".
+    private static final int MAX_WEEKS_SCAN = 520; // ~10yr safety cap against runaway loops if too many holidays are configured back-to-back
+
     private int generateSessionsForSlot(TimetableSlot slot) {
         List<GroupSession> created = new ArrayList<>();
 
@@ -274,7 +281,17 @@ public class TimetableSlotServiceImpl implements TimetableSlotService {
             date = date.plusDays(1);
         }
 
-        for (int i = 0; i < slot.getTotalSessions(); i++) {
+        int scheduled = 0;
+        int weeksScanned = 0;
+        while (scheduled < slot.getTotalSessions() && weeksScanned < MAX_WEEKS_SCAN) {
+            weeksScanned++;
+
+            if (holidayRepository.existsByDate(date)) {
+                log.info("Skipping {} for slot {} — marked as a holiday", date, slot.getId());
+                date = date.plusWeeks(1);
+                continue;
+            }
+
             Instant start = date.atTime(slot.getStartTime()).atZone(AppTimeZone.CAMBODIA).toInstant();
             Instant end = date.atTime(slot.getEndTime()).atZone(AppTimeZone.CAMBODIA).toInstant();
 
@@ -289,7 +306,14 @@ public class TimetableSlotServiceImpl implements TimetableSlotService {
                         .build();
                 created.add(groupSessionRepository.save(session));
             }
+
+            scheduled++;
             date = date.plusWeeks(1);
+        }
+
+        if (weeksScanned >= MAX_WEEKS_SCAN && scheduled < slot.getTotalSessions()) {
+            log.warn("Slot {} hit the {}-week scan cap with only {}/{} sessions scheduled — check for excessive holiday coverage",
+                    slot.getId(), MAX_WEEKS_SCAN, scheduled, slot.getTotalSessions());
         }
 
         return created.size();
