@@ -5,7 +5,7 @@ import lombok.*;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.time.LocalTime;
 import java.util.UUID;
 
@@ -56,7 +56,7 @@ public class TimetableSlot {
     @Column(name = "created_by", nullable = false)
     private UUID createdBy;
 
-    @Column(name = "created_at", updatable = false)
+    @Column(columnDefinition = "TIMESTAMPTZ", name = "created_at", updatable = false)
     @Builder.Default
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private Instant createdAt = Instant.now();
 }

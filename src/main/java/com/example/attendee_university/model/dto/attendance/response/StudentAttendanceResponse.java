@@ -3,7 +3,7 @@ package com.example.attendee_university.model.dto.attendance.response;
 import com.example.attendee_university.model.constraint.AttendanceStatus;
 import lombok.Builder;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 
 @Builder
@@ -21,6 +21,6 @@ public record StudentAttendanceResponse(
 
         AttendanceStatus status,
 
-        LocalDateTime checkedInAt
+        Instant checkedInAt
 ) {
 }

@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -18,30 +18,30 @@ public interface GroupSessionRepository extends JpaRepository<GroupSession, UUID
 
     @Query("SELECT s FROM GroupSession s WHERE s.groupId IN :groupIds " +
             "AND s.startTime <= :now AND s.endTime >= :now")
-    List<GroupSession> findActiveByGroupIds(@Param("groupIds") List<UUID> groupIds, @Param("now") LocalDateTime now);
+    List<GroupSession> findActiveByGroupIds(@Param("groupIds") List<UUID> groupIds, @Param("now") Instant now);
 
     @Query("SELECT s FROM GroupSession s WHERE s.groupId = :groupId " +
             "AND s.startTime <= :now AND s.endTime >= :now")
-    List<GroupSession> findActiveByGroupId(@Param("groupId") UUID groupId, @Param("now") LocalDateTime now);
+    List<GroupSession> findActiveByGroupId(@Param("groupId") UUID groupId, @Param("now") Instant now);
 
     // ── Upcoming (not-yet-started) sessions ─────────────────────
     @Query("SELECT s FROM GroupSession s WHERE s.groupId IN :groupIds " +
             "AND s.startTime > :now ORDER BY s.startTime ASC")
-    List<GroupSession> findUpcomingByGroupIds(@Param("groupIds") List<UUID> groupIds, @Param("now") LocalDateTime now);
+    List<GroupSession> findUpcomingByGroupIds(@Param("groupIds") List<UUID> groupIds, @Param("now") Instant now);
 
     // ── Conflict checks for one-off / generated sessions ───────
     @Query("SELECT s FROM GroupSession s WHERE s.zoneId = :zoneId AND s.id <> :excludeId " +
             "AND s.startTime < :endTime AND s.endTime > :startTime")
     List<GroupSession> findOverlappingByZone(@Param("zoneId") UUID zoneId,
-                                             @Param("startTime") LocalDateTime startTime,
-                                             @Param("endTime") LocalDateTime endTime,
+                                             @Param("startTime") Instant startTime,
+                                             @Param("endTime") Instant endTime,
                                              @Param("excludeId") UUID excludeId);
 
     @Query("SELECT s FROM GroupSession s WHERE s.groupId IN :groupIds AND s.id <> :excludeId " +
             "AND s.startTime < :endTime AND s.endTime > :startTime")
     List<GroupSession> findOverlappingByGroupIds(@Param("groupIds") List<UUID> groupIds,
-                                                 @Param("startTime") LocalDateTime startTime,
-                                                 @Param("endTime") LocalDateTime endTime,
+                                                 @Param("startTime") Instant startTime,
+                                                 @Param("endTime") Instant endTime,
                                                  @Param("excludeId") UUID excludeId);
 
     // ── Scheduler polling window ─────────────────────────────────
@@ -49,10 +49,10 @@ public interface GroupSessionRepository extends JpaRepository<GroupSession, UUID
     // (both OPENED/CLOSED broadcasts fired and their Redis dedup keys
     // expired) — no need to keep loading them every 60s forever.
     @Query("SELECT s FROM GroupSession s WHERE s.endTime >= :since")
-    List<GroupSession> findRelevantForScheduler(@Param("since") LocalDateTime since);
+    List<GroupSession> findRelevantForScheduler(@Param("since") Instant since);
 
     // ── Generated-session bookkeeping for TimetableSlot ─────────
-    boolean existsByTimetableSlotIdAndStartTime(UUID timetableSlotId, LocalDateTime startTime);
+    boolean existsByTimetableSlotIdAndStartTime(UUID timetableSlotId, Instant startTime);
 
     List<GroupSession> findByTimetableSlotId(UUID timetableSlotId);
 
@@ -61,5 +61,5 @@ public interface GroupSessionRepository extends JpaRepository<GroupSession, UUID
 
     @Modifying
     @Query("DELETE FROM GroupSession s WHERE s.timetableSlotId = :slotId AND s.startTime > :now")
-    void deleteFutureByTimetableSlotId(@Param("slotId") UUID slotId, @Param("now") LocalDateTime now);
+    void deleteFutureByTimetableSlotId(@Param("slotId") UUID slotId, @Param("now") Instant now);
 }

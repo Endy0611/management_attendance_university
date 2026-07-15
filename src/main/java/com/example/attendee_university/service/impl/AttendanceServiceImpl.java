@@ -33,6 +33,7 @@ import com.example.attendee_university.model.dto.face.response.FaceVerifyRespons
 import com.example.attendee_university.service.AttendanceService;
 import com.example.attendee_university.service.FaceService;
 import com.example.attendee_university.service.NotificationService;
+import com.example.attendee_university.utils.AppTimeZone;
 import com.example.attendee_university.utils.GeoUtils;
 import com.example.attendee_university.utils.HandleCurrentUser;
 import com.example.attendee_university.utils.TokenHashUtil;
@@ -42,7 +43,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -84,7 +86,7 @@ public class AttendanceServiceImpl implements AttendanceService {
         GroupSession session = groupSessionRepository.findById(sessionId)
                 .orElseThrow(() -> new NotFoundException("Session not found."));
 
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
         if (!session.isActive(now)) {
             throw new BadRequestException("This session is not currently active.");
         }
@@ -123,7 +125,7 @@ public class AttendanceServiceImpl implements AttendanceService {
                     .title("Check-in failed")
                     .message(String.format("You are %.0f m away from the zone (allowed: %.0f m).",
                             distance, zone.getRadiusMeters()))
-                    .timestamp(LocalDateTime.now())
+                    .timestamp(Instant.now())
                     .build());
 
             throw new BadRequestException(
@@ -149,14 +151,14 @@ public class AttendanceServiceImpl implements AttendanceService {
                     .title("Face not recognized")
                     .message("Your face could not be verified. Try re-scanning with better lighting, "
                             + "or ask your instructor for help if this keeps happening.")
-                    .timestamp(LocalDateTime.now())
+                    .timestamp(Instant.now())
                     .build());
 
             throw new BadRequestException(
                     "Face could not be verified. Please re-scan with better lighting and try again.");
         }
 
-        AttendanceStatus status = now.isBefore(session.getStartTime().plusMinutes(15))
+        AttendanceStatus status = now.isBefore(session.getStartTime().plus(Duration.ofMinutes(15)))
                 ? AttendanceStatus.PRESENT
                 : AttendanceStatus.LATE;
 
@@ -177,7 +179,7 @@ public class AttendanceServiceImpl implements AttendanceService {
                 .type(NotificationType.CHECK_IN_SUCCESS)
                 .title("Check-in recorded")
                 .message("You are marked " + status.name() + " for this session.")
-                .timestamp(LocalDateTime.now())
+                .timestamp(Instant.now())
                 .build());
 
         long totalPresent = attendanceRepository.countBySessionIdAndStatus(sessionId, AttendanceStatus.PRESENT);
@@ -307,7 +309,7 @@ public class AttendanceServiceImpl implements AttendanceService {
                 .orElseGet(() -> AttendanceRecord.builder()
                         .sessionId(sessionId)
                         .studentId(studentId)
-                        .checkedInAt(LocalDateTime.now())
+                        .checkedInAt(Instant.now())
                         .latitude(0.0)
                         .longitude(0.0)
                         .distanceMeters(0.0)
@@ -336,7 +338,7 @@ public class AttendanceServiceImpl implements AttendanceService {
                 .map(GroupMember::getGroupId)
                 .toList();
 
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
 
         return groupIds.stream()
                 .flatMap(groupId -> groupSessionRepository.findByGroupId(groupId).stream())
@@ -353,7 +355,7 @@ public class AttendanceServiceImpl implements AttendanceService {
                             .map(AttendanceRecord::getStatus)
                             .orElse(AttendanceStatus.ABSENT);
 
-                    LocalDateTime checkedInAt = attendanceRepository
+                    Instant checkedInAt = attendanceRepository
                             .findBySessionIdAndStudentId(session.getId(), student.getId())
                             .map(AttendanceRecord::getCheckedInAt)
                             .orElse(null);
@@ -362,7 +364,7 @@ public class AttendanceServiceImpl implements AttendanceService {
                             .attendanceId(null)
                             .sessionId(session.getId())
                             .sessionTitle(group != null
-                                    ? group.getName() + " — " + session.getStartTime().toLocalDate()
+                                    ? group.getName() + " — " + session.getStartTime().atZone(AppTimeZone.CAMBODIA).toLocalDate()
                                     : "Unknown session")
                             .groupName(group != null ? group.getName() : null)
                             .courseCode(courseCode)
@@ -409,7 +411,7 @@ public class AttendanceServiceImpl implements AttendanceService {
                             .attendanceId(record.getId())
                             .sessionId(record.getSessionId())
                             .sessionTitle(session != null && group != null
-                                    ? group.getName() + " — " + session.getStartTime().toLocalDate()
+                                    ? group.getName() + " — " + session.getStartTime().atZone(AppTimeZone.CAMBODIA).toLocalDate()
                                     : "Unknown session")
                             .groupName(group != null ? group.getName() : null)
                             .courseCode(courseCode)

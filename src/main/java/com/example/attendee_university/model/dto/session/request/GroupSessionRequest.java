@@ -2,7 +2,7 @@ package com.example.attendee_university.model.dto.session.request;
 
 import jakarta.validation.constraints.NotNull;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 
 public record GroupSessionRequest(
@@ -14,8 +14,8 @@ public record GroupSessionRequest(
         UUID zoneId,
 
         @NotNull(message = "Start time is required")
-        LocalDateTime startTime,
+        Instant startTime,
 
         @NotNull(message = "End time is required")
-        LocalDateTime endTime
+        Instant endTime
 ) {}

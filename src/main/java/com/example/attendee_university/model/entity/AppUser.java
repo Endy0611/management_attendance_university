@@ -9,7 +9,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
@@ -68,15 +68,15 @@ public class AppUser implements UserDetails {
     @Column(name = "device_bound", nullable = false)
     private boolean deviceBound = false;
 
-    @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    @Column(columnDefinition = "TIMESTAMPTZ", name = "created_at", updatable = false)
+    private Instant createdAt = Instant.now();
 
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt = LocalDateTime.now();
+    @Column(columnDefinition = "TIMESTAMPTZ", name = "updated_at")
+    private Instant updatedAt = Instant.now();
 
     @PreUpdate
     public void preUpdate() {
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = Instant.now();
     }
 
     @Override

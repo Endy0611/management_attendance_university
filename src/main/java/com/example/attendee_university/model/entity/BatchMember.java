@@ -3,7 +3,7 @@ package com.example.attendee_university.model.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 
 @Getter
@@ -27,7 +27,7 @@ public class BatchMember {
     @Column(name = "app_user_id", nullable = false)
     private UUID appUserId;
 
-    @Column(name = "joined_at", updatable = false)
+    @Column(columnDefinition = "TIMESTAMPTZ", name = "joined_at", updatable = false)
     @Builder.Default
-    private LocalDateTime joinedAt = LocalDateTime.now();
+    private Instant joinedAt = Instant.now();
 }

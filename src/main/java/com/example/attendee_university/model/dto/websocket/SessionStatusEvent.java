@@ -6,7 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 
 @Data
@@ -19,7 +19,7 @@ public class SessionStatusEvent {
     private String groupName;
     private String zoneName;
     private SessionStatus status;
-    private LocalDateTime startTime;
-    private LocalDateTime endTime;
-    private LocalDateTime eventTime;
+    private Instant startTime;
+    private Instant endTime;
+    private Instant eventTime;
 }

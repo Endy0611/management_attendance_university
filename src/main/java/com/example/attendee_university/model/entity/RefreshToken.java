@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Getter
@@ -27,7 +26,7 @@ public class RefreshToken {
     @Column(name = "token_hash", nullable = false, unique = true)
     private String tokenHash;
 
-    @Column(name = "expires_at", nullable = false)
+    @Column(columnDefinition = "TIMESTAMPTZ", name = "expires_at", nullable = false)
     private Instant expiresAt;
 
     @Column(name = "is_revoked", nullable = false)
@@ -43,16 +42,16 @@ public class RefreshToken {
     @Column(name = "ip_address")
     private String ipAddress;
 
-    @Column(name = "created_at", updatable = false)
+    @Column(columnDefinition = "TIMESTAMPTZ", name = "created_at", updatable = false)
     @Builder.Default
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private Instant createdAt = Instant.now();
 
-    @Column(name = "updated_at")
+    @Column(columnDefinition = "TIMESTAMPTZ", name = "updated_at")
     @Builder.Default
-    private LocalDateTime updatedAt = LocalDateTime.now();
+    private Instant updatedAt = Instant.now();
 
     @PreUpdate
     public void preUpdate() {
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = Instant.now();
     }
 }

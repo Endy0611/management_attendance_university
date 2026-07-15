@@ -5,7 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 
 @Data
@@ -17,5 +17,5 @@ public class BatchResponse {
     private String name;
     private int intakeYear;
     private int groupCount;
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 }

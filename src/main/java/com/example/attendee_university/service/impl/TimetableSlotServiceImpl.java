@@ -9,6 +9,7 @@ import com.example.attendee_university.model.dto.timetable.response.TimetableSlo
 import com.example.attendee_university.model.entity.*;
 import com.example.attendee_university.repository.*;
 import com.example.attendee_university.service.TimetableSlotService;
+import com.example.attendee_university.utils.AppTimeZone;
 import com.example.attendee_university.utils.HandleCurrentUser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,8 +17,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -103,7 +104,7 @@ public class TimetableSlotServiceImpl implements TimetableSlotService {
 
         if (scheduleChanged) {
             // drop future auto-generated sessions for the old schedule; past ones (with attendance history) are untouched
-            groupSessionRepository.deleteFutureByTimetableSlotId(id, LocalDateTime.now());
+            groupSessionRepository.deleteFutureByTimetableSlotId(id, Instant.now());
         }
 
         slot.setGroupId(newGroup.getId());
@@ -132,7 +133,7 @@ public class TimetableSlotServiceImpl implements TimetableSlotService {
         if (group != null) assertCanManageGroup(group);
 
         // only drop future occurrences; past sessions keep their attendance history
-        groupSessionRepository.deleteFutureByTimetableSlotId(id, LocalDateTime.now());
+        groupSessionRepository.deleteFutureByTimetableSlotId(id, Instant.now());
         timetableSlotRepository.delete(slot);
         log.info("Timetable slot {} deleted", id);
     }
@@ -274,8 +275,8 @@ public class TimetableSlotServiceImpl implements TimetableSlotService {
         }
 
         for (int i = 0; i < slot.getTotalSessions(); i++) {
-            LocalDateTime start = LocalDateTime.of(date, slot.getStartTime());
-            LocalDateTime end = LocalDateTime.of(date, slot.getEndTime());
+            Instant start = date.atTime(slot.getStartTime()).atZone(AppTimeZone.CAMBODIA).toInstant();
+            Instant end = date.atTime(slot.getEndTime()).atZone(AppTimeZone.CAMBODIA).toInstant();
 
             if (!groupSessionRepository.existsByTimetableSlotIdAndStartTime(slot.getId(), start)) {
                 GroupSession session = GroupSession.builder()

@@ -5,7 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 
 @Data
@@ -22,8 +22,8 @@ public class GroupSessionResponse {
     private double latitude;
     private double longitude;
     private double radiusMeters;
-    private LocalDateTime startTime;
-    private LocalDateTime endTime;
+    private Instant startTime;
+    private Instant endTime;
     private boolean active;
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 }

@@ -7,7 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 
 @Entity
@@ -38,8 +38,8 @@ public class AttendanceRecord {
     @Column(name = "student_id", nullable = false)
     private UUID studentId;
 
-    @Column(name = "checked_in_at", nullable = false)
-    private LocalDateTime checkedInAt;
+    @Column(columnDefinition = "TIMESTAMPTZ", name = "checked_in_at", nullable = false)
+    private Instant checkedInAt;
 
     @Column(nullable = false)
     private Double latitude;

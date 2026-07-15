@@ -20,7 +20,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @Slf4j
@@ -41,13 +41,13 @@ public class SessionSchedular {
 
     @Scheduled(fixedDelay = 60_000)
     public void checkSessions() {
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
         // Only pull sessions that could plausibly need an OPENED/CLOSED
         // transition right now — not the entire history of every session
         // ever created. Anything that ended more than a day ago is long
         // past both the OPENED (2h) and CLOSED (24h) Redis dedup TTLs below,
         // so it can never fire again and doesn't need to be loaded.
-        List<GroupSession> candidates = groupSessionRepository.findRelevantForScheduler(now.minusHours(24));
+        List<GroupSession> candidates = groupSessionRepository.findRelevantForScheduler(now.minus(Duration.ofHours(24)));
 
         for (GroupSession session : candidates) {
             boolean active  = session.isActive(now);
@@ -97,7 +97,7 @@ public class SessionSchedular {
                             .type(type)
                             .title(title)
                             .message(message)
-                            .timestamp(LocalDateTime.now())
+                            .timestamp(Instant.now())
                             .build()));
         }
     }
@@ -113,7 +113,7 @@ public class SessionSchedular {
                 .status(status)
                 .startTime(session.getStartTime())
                 .endTime(session.getEndTime())
-                .eventTime(LocalDateTime.now())
+                .eventTime(Instant.now())
                 .build();
     }
 

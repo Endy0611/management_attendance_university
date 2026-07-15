@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.time.LocalTime;
 import java.util.UUID;
 
@@ -29,5 +29,5 @@ public class TimetableSlotResponse {
     private LocalDate validFrom;
     private int totalSessions;
     private int generatedSessionsCount;
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 }

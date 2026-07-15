@@ -5,7 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 
 @Data
@@ -15,5 +15,5 @@ import java.util.UUID;
 public class DeviceResponse {
     private UUID          id;
     private String        deviceInfo;
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 }

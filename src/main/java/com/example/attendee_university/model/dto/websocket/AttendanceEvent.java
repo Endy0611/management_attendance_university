@@ -6,7 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 
 @Data
@@ -21,7 +21,7 @@ public class AttendanceEvent {
     private String studentNumber;   // studentId field on AppUser
     private AttendanceStatus status;
     private Double distanceMeters;
-    private LocalDateTime checkedInAt;
+    private Instant checkedInAt;
     private long totalPresent;      // running count after this check-in
     private long totalLate;
 }

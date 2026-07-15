@@ -3,7 +3,7 @@ package com.example.attendee_university.model.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 
 @Getter
@@ -26,7 +26,7 @@ public class Course {
     @Column(name = "name", nullable = false)
     private String name;
 
-    @Column(name = "created_at", updatable = false)
+    @Column(columnDefinition = "TIMESTAMPTZ", name = "created_at", updatable = false)
     @Builder.Default
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private Instant createdAt = Instant.now();
 }

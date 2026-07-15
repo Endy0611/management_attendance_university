@@ -4,7 +4,7 @@ import com.example.attendee_university.model.constraint.NotificationType;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 
 @Entity
@@ -36,7 +36,7 @@ public class NotificationRecord {
     @Builder.Default
     private boolean read = false;
 
-    @Column(name = "created_at", updatable = false)
+    @Column(columnDefinition = "TIMESTAMPTZ", name = "created_at", updatable = false)
     @Builder.Default
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private Instant createdAt = Instant.now();
 }

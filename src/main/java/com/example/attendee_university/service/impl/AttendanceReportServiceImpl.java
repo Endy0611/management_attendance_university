@@ -5,6 +5,7 @@ import com.example.attendee_university.model.constraint.AttendanceStatus;
 import com.example.attendee_university.model.entity.*;
 import com.example.attendee_university.repository.*;
 import com.example.attendee_university.service.AttendanceReportService;
+import com.example.attendee_university.utils.AppTimeZone;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,7 +26,10 @@ public class AttendanceReportServiceImpl implements AttendanceReportService {
     private final AppUserRepository      appUserRepository;
     private final CourseRepository       courseRepository;
 
-    private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+    // Instant has no local fields of its own, so the formatter needs an explicit
+    // zone to render CSV timestamps in Cambodia local time instead of throwing.
+    private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+            .withZone(AppTimeZone.CAMBODIA);
 
     // ── Single session CSV ────────────────────────────────────
     @Override
@@ -42,8 +46,8 @@ public class AttendanceReportServiceImpl implements AttendanceReportService {
         sb.append(csv(sessionId.toString())).append(",")
                 .append(csv(groupName)).append(",")
                 .append(csv(courseCode)).append(",")
-                .append(session.getStartTime().format(FMT)).append(",")
-                .append(session.getEndTime().format(FMT)).append("\n\n");
+                .append(FMT.format(session.getStartTime())).append(",")
+                .append(FMT.format(session.getEndTime())).append("\n\n");
 
         sb.append("No,Student Name,Student ID,Email,Status,Checked-In At,Distance (m)\n");
 
@@ -57,7 +61,7 @@ public class AttendanceReportServiceImpl implements AttendanceReportService {
 
             AttendanceRecord record   = attendanceMap.get(student.getId());
             String           status   = record != null ? record.getStatus().name() : AttendanceStatus.ABSENT.name();
-            String           checkedIn = record != null ? record.getCheckedInAt().format(FMT) : "-";
+            String           checkedIn = record != null ? FMT.format(record.getCheckedInAt()) : "-";
             String           distance  = record != null ? String.format("%.1f", record.getDistanceMeters()) : "-";
 
             sb.append(i++).append(",")
@@ -88,7 +92,7 @@ public class AttendanceReportServiceImpl implements AttendanceReportService {
         // Header row
         sb.append("Student Name,Student ID,Email");
         for (GroupSession s : sessions) {
-            sb.append(",").append(s.getStartTime().format(FMT));
+            sb.append(",").append(FMT.format(s.getStartTime()));
         }
         sb.append(",Total Present,Total Late,Total Absent\n");
 

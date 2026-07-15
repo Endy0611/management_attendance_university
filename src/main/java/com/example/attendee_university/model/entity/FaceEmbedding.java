@@ -3,7 +3,7 @@ package com.example.attendee_university.model.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 
 @Entity
@@ -25,16 +25,16 @@ public class FaceEmbedding {
     @Column(name = "embedding_vector", nullable = false, columnDefinition = "TEXT")
     private String embeddingVector;
 
-    @Column(name = "registered_at", updatable = false)
+    @Column(columnDefinition = "TIMESTAMPTZ", name = "registered_at", updatable = false)
     @Builder.Default
-    private LocalDateTime registeredAt = LocalDateTime.now();
+    private Instant registeredAt = Instant.now();
 
-    @Column(name = "updated_at")
+    @Column(columnDefinition = "TIMESTAMPTZ", name = "updated_at")
     @Builder.Default
-    private LocalDateTime updatedAt = LocalDateTime.now();
+    private Instant updatedAt = Instant.now();
 
     @PreUpdate
     public void preUpdate() {
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = Instant.now();
     }
 }

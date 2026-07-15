@@ -23,7 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -128,7 +128,7 @@ public class GroupSessionServiceImpl implements GroupSessionService {
     @Override
     public List<GroupSessionResponse> getMyActiveSessions() {
         AppUser currentUser = handleCurrentUser.getCurrentUser();
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
 
         List<UUID> groupIds;
         if (currentUser.getRole() == RoleType.ADMIN) {
@@ -157,7 +157,7 @@ public class GroupSessionServiceImpl implements GroupSessionService {
     @Override
     public List<GroupSessionResponse> getPastSessionsForMyGroups() {
         AppUser currentUser = handleCurrentUser.getCurrentUser();
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
 
         List<UUID> groupIds = groupMemberRepository.findByAppUserId(currentUser.getId()).stream()
                 .map(GroupMember::getGroupId)
@@ -176,7 +176,7 @@ public class GroupSessionServiceImpl implements GroupSessionService {
     @Override
     public List<GroupSessionResponse> getUpcomingSessionsForMyGroups() {
         AppUser currentUser = handleCurrentUser.getCurrentUser();
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
 
         List<UUID> groupIds;
         if (currentUser.getRole() == RoleType.ADMIN) {
@@ -198,7 +198,7 @@ public class GroupSessionServiceImpl implements GroupSessionService {
 
     // ── Helpers ────────────────────────────────────────────────
     // real-world conflict rules: no room double-booking, no instructor double-booking at the same time
-    private void assertNoTimeConflict(Group group, Zone zone, LocalDateTime startTime, LocalDateTime endTime, UUID excludeSessionId) {
+    private void assertNoTimeConflict(Group group, Zone zone, Instant startTime, Instant endTime, UUID excludeSessionId) {
         UUID excludeId = excludeSessionId != null ? excludeSessionId : NO_EXCLUDE;
 
         List<GroupSession> zoneConflicts = groupSessionRepository.findOverlappingByZone(zone.getId(), startTime, endTime, excludeId);
@@ -226,7 +226,7 @@ public class GroupSessionServiceImpl implements GroupSessionService {
     }
 
     private GroupSessionResponse toResponse(GroupSession session, Group group, Zone zone) {
-        boolean active = session.isActive(LocalDateTime.now());
+        boolean active = session.isActive(Instant.now());
 
         // resolve courseCode via CourseRepository
         String courseCode = null;
