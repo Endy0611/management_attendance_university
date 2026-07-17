@@ -77,8 +77,9 @@ public class AttendanceServiceImpl implements AttendanceService {
     @Override
     @Transactional
     public AttendanceResponse checkIn(UUID sessionId, AttendanceCheckInRequest request) {
+        log.info("=== CHECK-IN HIT: sessionId={} ===", sessionId);
         AppUser student = handleCurrentUser.getCurrentUser();
-
+        log.info("=== Current user: {} role={} ===", student.getEmail(), student.getRole());
         if (student.getRole() != RoleType.STUDENT) {
             throw new ForbiddenException("Only students can check in.");
         }
