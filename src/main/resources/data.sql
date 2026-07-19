@@ -317,3 +317,23 @@ UPDATE group_sessions
 SET start_time = now() - interval '5 minutes',
     end_time   = now() + interval '24 hours'
 WHERE id = '81ce8701-93b8-4d03-a571-07b294882cef';
+
+
+TRUNCATE TABLE
+    "app_users",
+    "attendance_records",
+    "batch_members",
+    "batches",
+    "courses",
+    "device_fingerprints",
+    "face_embeddings",
+    "group_members",
+    "group_sessions",
+    "groups",
+    "holidays",
+    "majors",
+    "notifications",
+    "refresh_tokens",
+    "timetable_slots",
+    "zones"
+    RESTART IDENTITY CASCADE;

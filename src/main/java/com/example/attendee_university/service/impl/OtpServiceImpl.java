@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
 
+import java.security.SecureRandom;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -26,6 +27,7 @@ public class OtpServiceImpl implements OtpService {
     private static final long   RESET_TOKEN_TTL_SECONDS = 900;
     private static final String OTP_PREFIX              = "otp:";
     private static final String RESET_TOKEN_PREFIX      = "reset:";
+    private static final SecureRandom SECURE_RANDOM     = new SecureRandom();
 
     private final JavaMailSender          mailSender;
     private final SpringTemplateEngine    templateEngine;
@@ -36,7 +38,9 @@ public class OtpServiceImpl implements OtpService {
 
     @Override
     public String generateOtp() {
-        int otp = 100000 + (int) (Math.random() * 900000);
+        // SecureRandom instead of Math.random() — OTPs are a security control,
+        // Math.random()'s PRNG is predictable and not safe for this.
+        int otp = 100000 + SECURE_RANDOM.nextInt(900000);
         return String.valueOf(otp);
     }
 

@@ -67,11 +67,20 @@ public class AppUserServiceImpl implements AppUserService {
         user.setPhone(request.phone());
 
         AppUser saved = appUserRepository.save(user);
-        sendOtp(request.email());
+
+        boolean otpSent = sendOtp(request.email());
+        if (!otpSent) {
+            // Account exists, but the user has no way to get a code. Don't 500 —
+            // the account is created — but tell the frontend so it can show a
+            // "resend" prompt instead of silently stranding the user.
+            log.warn("Registered {} but OTP email failed to send.", request.email());
+            throw new BadRequestException(
+                    "Account created, but we couldn't send the verification email. Please use Resend on the verification page.");
+        }
+
         return toResponse(saved);
     }
 
-    // ── Verify Email OTP ──────────────────────────────────────
     @Override
     @Transactional
     public void verifyEmailOtp(String email, String otp) {
@@ -85,8 +94,12 @@ public class AppUserServiceImpl implements AppUserService {
         if (user.isVerified()) {
             throw new BadRequestException("Account is already verified.");
         }
+
+        if (!otpService.isOtpPresent(email)) {
+            throw new BadRequestException("OTP has expired. Please request a new code.");
+        }
         if (!otpService.verifyOtp(email, otp)) {
-            throw new BadRequestException("OTP is invalid or has expired.");
+            throw new BadRequestException("Invalid OTP. Please check the code and try again.");
         }
 
         appUserRepository.verifyUser(email);
@@ -125,8 +138,11 @@ public class AppUserServiceImpl implements AppUserService {
         appUserRepository.findByEmail(email)
                 .orElseThrow(() -> new BadRequestException("Email is not registered."));
 
+        if (!otpService.isOtpPresent(email)) {
+            throw new BadRequestException("OTP has expired. Please request a new code.");
+        }
         if (!otpService.verifyOtp(email, otp)) {
-            throw new BadRequestException("OTP is invalid or has expired.");
+            throw new BadRequestException("Invalid OTP. Please check the code and try again.");
         }
 
         String resetToken = otpService.generateResetToken(email);
