@@ -3,6 +3,7 @@ package com.example.attendee_university.model.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -13,6 +14,9 @@ import java.util.UUID;
 @Entity
 @Table(name = "group_sessions")
 public class GroupSession {
+
+    // How early before startTime a student is allowed to check in.
+    private static final Duration EARLY_CHECKIN_WINDOW = Duration.ofMinutes(30);
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -43,18 +47,24 @@ public class GroupSession {
     private Instant createdAt = Instant.now();
 
     // ── Single source of truth for session state ───────────────
-    // Convention: [startTime, endTime) — inclusive of the start instant,
-    // exclusive of the end instant. Every place in the codebase that needs
-    // to know if a session is "active" must call this instead of rolling
-    // its own isBefore/isAfter check.
+    // Convention: check-in window is [startTime - EARLY_CHECKIN_WINDOW, endTime)
+    // — opens 30 min before the official start, exclusive of the end instant.
+    // Every place in the codebase that needs to know if a session is
+    // "active" (i.e. checkinable) must call this instead of rolling its
+    // own isBefore/isAfter check.
     @Transient
     public boolean isActive(Instant now) {
-        return !now.isBefore(startTime) && now.isBefore(endTime);
+        Instant checkinOpensAt = startTime.minus(EARLY_CHECKIN_WINDOW);
+        return !now.isBefore(checkinOpensAt) && now.isBefore(endTime);
     }
 
+    // Kept in sync with isActive's checkinOpensAt so "upcoming" and "active"
+    // never overlap or leave a gap — upcoming now means "before the early
+    // check-in window opens", not "before startTime".
     @Transient
     public boolean isUpcoming(Instant now) {
-        return now.isBefore(startTime);
+        Instant checkinOpensAt = startTime.minus(EARLY_CHECKIN_WINDOW);
+        return now.isBefore(checkinOpensAt);
     }
 
     @Transient
