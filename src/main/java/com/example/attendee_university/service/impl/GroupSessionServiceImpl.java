@@ -10,6 +10,7 @@ import com.example.attendee_university.model.entity.Group;
 import com.example.attendee_university.model.entity.GroupMember;
 import com.example.attendee_university.model.entity.GroupSession;
 import com.example.attendee_university.model.entity.Zone;
+import com.example.attendee_university.repository.AttendanceRepository;
 import com.example.attendee_university.repository.GroupMemberRepository;
 import com.example.attendee_university.repository.GroupRepository;
 import com.example.attendee_university.repository.GroupSessionRepository;
@@ -37,6 +38,7 @@ public class GroupSessionServiceImpl implements GroupSessionService {
     private final ZoneRepository zoneRepository;
     private final GroupMemberRepository groupMemberRepository;
     private final CourseRepository        courseRepository;
+    private final AttendanceRepository    attendanceRepository;
     private final HandleCurrentUser handleCurrentUser;
 
     // sentinel "exclude nothing" id for the overlap queries when creating a brand-new session
@@ -68,13 +70,13 @@ public class GroupSessionServiceImpl implements GroupSessionService {
 
         GroupSession saved = groupSessionRepository.save(session);
         log.info("Session created for group {} in zone {}", group.getName(), zone.getName());
-        return toResponse(saved, group, zone);
+        return toResponse(saved, group, zone, false);
     }
 
     @Override
     public List<GroupSessionResponse> getAllSessions() {
         return groupSessionRepository.findAll().stream()
-                .map(this::toResponseResolved)
+                .map(s -> toResponseResolved(s, false))
                 .toList();
     }
 
@@ -83,13 +85,13 @@ public class GroupSessionServiceImpl implements GroupSessionService {
         groupRepository.findById(groupId)
                 .orElseThrow(() -> new NotFoundException("Group not found."));
         return groupSessionRepository.findByGroupId(groupId).stream()
-                .map(this::toResponseResolved)
+                .map(s -> toResponseResolved(s, false))
                 .toList();
     }
 
     @Override
     public GroupSessionResponse getSessionById(UUID id) {
-        return toResponseResolved(findOrThrow(id));
+        return toResponseResolved(findOrThrow(id), false);
     }
 
     @Override
@@ -114,7 +116,7 @@ public class GroupSessionServiceImpl implements GroupSessionService {
         session.setEndTime(request.endTime());
         // dirty checking saves automatically inside @Transactional
 
-        return toResponse(session, group, zone);
+        return toResponse(session, group, zone, false);
     }
 
     @Override
@@ -125,10 +127,18 @@ public class GroupSessionServiceImpl implements GroupSessionService {
         log.info("Session {} deleted", id);
     }
 
+    // ── Active (checkinable) sessions for current user ──────────
+    // For STUDENT callers this is the list that drives the check-in page,
+    // so each entry is annotated with alreadyCheckedIn — the frontend uses
+    // that to hide the check-in flow entirely for a session the student
+    // has already submitted, instead of only finding out after tapping
+    // Check In and getting AttendanceServiceImpl's "already checked in"
+    // rejection.
     @Override
     public List<GroupSessionResponse> getMyActiveSessions() {
         AppUser currentUser = handleCurrentUser.getCurrentUser();
         Instant now = Instant.now();
+        Instant checkinCutoff = now.plus(GroupSession.EARLY_CHECKIN_WINDOW);
 
         List<UUID> groupIds;
         if (currentUser.getRole() == RoleType.ADMIN) {
@@ -148,8 +158,14 @@ public class GroupSessionServiceImpl implements GroupSessionService {
 
         if (groupIds.isEmpty()) return List.of();
 
-        return groupSessionRepository.findActiveByGroupIds(groupIds, now).stream()
-                .map(this::toResponseResolved)
+        boolean isStudent = currentUser.getRole() == RoleType.STUDENT;
+
+        return groupSessionRepository.findActiveByGroupIds(groupIds, checkinCutoff, now).stream()
+                .map(session -> {
+                    boolean alreadyCheckedIn = isStudent
+                            && attendanceRepository.existsBySessionIdAndStudentId(session.getId(), currentUser.getId());
+                    return toResponseResolved(session, alreadyCheckedIn);
+                })
                 .toList();
     }
 
@@ -168,7 +184,11 @@ public class GroupSessionServiceImpl implements GroupSessionService {
         return groupIds.stream()
                 .flatMap(groupId -> groupSessionRepository.findByGroupId(groupId).stream())
                 .filter(session -> session.isExpired(now))
-                .map(this::toResponseResolved)
+                .map(session -> {
+                    boolean alreadyCheckedIn = attendanceRepository
+                            .existsBySessionIdAndStudentId(session.getId(), currentUser.getId());
+                    return toResponseResolved(session, alreadyCheckedIn);
+                })
                 .toList();
     }
 
@@ -192,7 +212,7 @@ public class GroupSessionServiceImpl implements GroupSessionService {
         if (groupIds.isEmpty()) return List.of();
 
         return groupSessionRepository.findUpcomingByGroupIds(groupIds, now).stream()
-                .map(this::toResponseResolved)
+                .map(s -> toResponseResolved(s, false))
                 .toList();
     }
 
@@ -219,13 +239,13 @@ public class GroupSessionServiceImpl implements GroupSessionService {
                 .orElseThrow(() -> new NotFoundException("Session not found."));
     }
 
-    private GroupSessionResponse toResponseResolved(GroupSession session) {
+    private GroupSessionResponse toResponseResolved(GroupSession session, boolean alreadyCheckedIn) {
         Group group = groupRepository.findById(session.getGroupId()).orElse(null);
         Zone zone = zoneRepository.findById(session.getZoneId()).orElse(null);
-        return toResponse(session, group, zone);
+        return toResponse(session, group, zone, alreadyCheckedIn);
     }
 
-    private GroupSessionResponse toResponse(GroupSession session, Group group, Zone zone) {
+    private GroupSessionResponse toResponse(GroupSession session, Group group, Zone zone, boolean alreadyCheckedIn) {
         boolean active = session.isActive(Instant.now());
 
         // resolve courseCode via CourseRepository
@@ -249,6 +269,7 @@ public class GroupSessionServiceImpl implements GroupSessionService {
                 .startTime(session.getStartTime())
                 .endTime(session.getEndTime())
                 .active(active)
+                .alreadyCheckedIn(alreadyCheckedIn)
                 .createdAt(session.getCreatedAt())
                 .build();
     }

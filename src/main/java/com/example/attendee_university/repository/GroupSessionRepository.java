@@ -17,12 +17,16 @@ public interface GroupSessionRepository extends JpaRepository<GroupSession, UUID
     List<GroupSession> findByZoneId(UUID zoneId);
 
     @Query("SELECT s FROM GroupSession s WHERE s.groupId IN :groupIds " +
-            "AND s.startTime <= :now AND s.endTime >= :now")
-    List<GroupSession> findActiveByGroupIds(@Param("groupIds") List<UUID> groupIds, @Param("now") Instant now);
+            "AND s.startTime <= :checkinCutoff AND s.endTime >= :now")
+    List<GroupSession> findActiveByGroupIds(@Param("groupIds") List<UUID> groupIds,
+                                            @Param("checkinCutoff") Instant checkinCutoff,
+                                            @Param("now") Instant now);
 
     @Query("SELECT s FROM GroupSession s WHERE s.groupId = :groupId " +
-            "AND s.startTime <= :now AND s.endTime >= :now")
-    List<GroupSession> findActiveByGroupId(@Param("groupId") UUID groupId, @Param("now") Instant now);
+            "AND s.startTime <= :checkinCutoff AND s.endTime >= :now")
+    List<GroupSession> findActiveByGroupId(@Param("groupId") UUID groupId,
+                                           @Param("checkinCutoff") Instant checkinCutoff,
+                                           @Param("now") Instant now);
 
     // ── Upcoming (not-yet-started) sessions ─────────────────────
     @Query("SELECT s FROM GroupSession s WHERE s.groupId IN :groupIds " +

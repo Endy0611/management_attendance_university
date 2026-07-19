@@ -16,7 +16,7 @@ import java.util.UUID;
 public class GroupSession {
 
     // How early before startTime a student is allowed to check in.
-    private static final Duration EARLY_CHECKIN_WINDOW = Duration.ofMinutes(30);
+    public static final Duration EARLY_CHECKIN_WINDOW = Duration.ofMinutes(30);
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

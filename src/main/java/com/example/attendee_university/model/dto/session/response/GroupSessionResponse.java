@@ -7,7 +7,6 @@ import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 import java.util.UUID;
-
 @Data
 @Builder
 @NoArgsConstructor
@@ -25,5 +24,6 @@ public class GroupSessionResponse {
     private Instant startTime;
     private Instant endTime;
     private boolean active;
+    private boolean alreadyCheckedIn;
     private Instant createdAt;
 }
