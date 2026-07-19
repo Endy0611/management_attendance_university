@@ -26,6 +26,11 @@ public class RateLimitInterceptor implements HandlerInterceptor {
             return true;
         }
 
+        // Global check first — cheaper to reject early if system is already saturated
+        if (annotation.globalMaxRequests() > 0) {
+            rateLimitService.checkGlobal(annotation.scope(), annotation.globalMaxRequests(), annotation.globalWindowSeconds());
+        }
+
         String clientIp = resolveClientIp(request);
         rateLimitService.check(annotation.scope(), clientIp, annotation.maxRequests(), annotation.windowSeconds());
         return true;

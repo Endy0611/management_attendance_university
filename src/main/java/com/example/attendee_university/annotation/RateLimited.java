@@ -7,6 +7,9 @@ import java.lang.annotation.*;
 public @interface RateLimited {
     int maxRequests();
     int windowSeconds();
-    /** Included in the Redis key alongside client IP, e.g. "login", "verify-otp" — keeps counters independent per endpoint. */
     String scope();
+
+    /** 0 = no global cap for this endpoint. Set > 0 to enable. */
+    int globalMaxRequests() default 0;
+    int globalWindowSeconds() default 0;
 }

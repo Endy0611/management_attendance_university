@@ -9,6 +9,7 @@ import com.example.attendee_university.model.dto.auth.response.AppUserResponse;
 import com.example.attendee_university.model.dto.auth.response.AuthResponse;
 import com.example.attendee_university.model.entity.AppUser;
 import com.example.attendee_university.service.AppUserService;
+import com.example.attendee_university.service.RateLimitService;
 import com.example.attendee_university.service.RefreshTokenService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -35,6 +36,7 @@ public class AuthController {
     private final JwtService            jwtService;
     private final AuthenticationManager authenticationManager;
     private final RefreshTokenService   refreshTokenService;
+    private final RateLimitService      rateLimitService; // added — used for per-account login limit
 
     private void doAuthenticate(String email, String password) {
         try {
@@ -49,11 +51,19 @@ public class AuthController {
     }
 
     @Operation(summary = "User login")
-    @RateLimited(scope = "login", maxRequests = 5, windowSeconds = 60)
+    @RateLimited(
+            scope = "login",
+            maxRequests = 15, windowSeconds = 60,              // per-IP — raised from 5 since students share campus WiFi
+            globalMaxRequests = 300, globalWindowSeconds = 60  // total across all IPs
+    )
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<AuthResponse>> login(
             @RequestBody @Valid AuthRequest request,
             HttpServletRequest httpRequest) {
+
+        // Per-account limit — protects THIS account specifically, independent
+        // of shared-IP noise. This is the real brute-force protection now.
+        rateLimitService.check("login-account", request.identifier().toLowerCase(), 5, 60);
 
         doAuthenticate(request.identifier(), request.password());
 
