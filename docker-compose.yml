@@ -97,7 +97,7 @@ services:
 
 volumes:
   data_v3:
-    name: hrd-eventhub-api_data_v3
+    name: management_attendance_university_data_v3
     external: true
   rustfs_data:
   face-api_models:
