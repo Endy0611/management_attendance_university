@@ -23,8 +23,7 @@ services:
       - POSTGRES_PASSWORD=${DATASOURCE_PASSWORD}
       - POSTGRES_DB=${DATASOURCE_DB}
     volumes:
-      - data_v3:/var/lib/postgresql
-    # Database ports removed from public access (accessible via app-network)
+      - data_v3:/var/lib/postgresql/data
     restart: unless-stopped
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${DATASOURCE_USERNAME} -d ${DATASOURCE_DB}" ]
@@ -73,7 +72,7 @@ services:
     container_name: spring_backend
     mem_limit: 640m
     ports:
-      - "127.0.0.1:9090:8080" # Maps host 9090 -> container 8080 (Frees 8080 for Jenkins)
+      - "127.0.0.1:9090:8080" # Maps host 9090 -> container 8080
     env_file:
       - .env
     depends_on:
@@ -98,6 +97,8 @@ services:
 
 volumes:
   data_v3:
+    name: hrd-eventhub-api_data_v3
+    external: true
   rustfs_data:
   face-api_models:
 
