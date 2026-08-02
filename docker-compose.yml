@@ -4,9 +4,9 @@ services:
     container_name: proxy_manager
     restart: unless-stopped
     ports:
-      - "80:80"
-      - "443:443"
-      - "127.0.0.1:81:81" # Restricted admin UI to local server / SSH tunnel
+      - "80:80"       # HTTP Traffic
+      - "443:443"     # HTTPS Traffic
+      - "127.0.0.1:81:81" # NPM Admin UI (Locked to Localhost/SSH Tunnel)
     volumes:
       - ./proxy_data:/data
       - ./proxy_letsencrypt:/etc/letsencrypt
@@ -24,8 +24,7 @@ services:
       - POSTGRES_DB=${DATASOURCE_DB}
     volumes:
       - data_v3:/var/lib/postgresql
-    ports:
-      - "127.0.0.1:5432:5432" # Secure DB from external access
+    # Database ports removed from public access (accessible via app-network)
     restart: unless-stopped
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${DATASOURCE_USERNAME} -d ${DATASOURCE_DB}" ]
@@ -38,8 +37,6 @@ services:
   redis:
     image: redis:alpine
     container_name: redis_container
-    ports:
-      - "127.0.0.1:6379:6379" # Secure Redis from external access
     restart: always
     networks:
       - app-network
@@ -49,8 +46,7 @@ services:
     container_name: rustfs_local
     restart: unless-stopped
     ports:
-      - "127.0.0.1:9000:9000"
-      - "127.0.0.1:9001:9001" # Secure console UI
+      - "127.0.0.1:9001:9001" # RustFS Manager Console (Locked to Localhost)
     environment:
       RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY}
       RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY}
@@ -67,8 +63,6 @@ services:
     build: ../face-api
     container_name: face-api
     restart: unless-stopped
-    ports:
-      - "127.0.0.1:8000:8000"
     volumes:
       - face-api_models:/root/.deepface
     networks:
@@ -79,7 +73,7 @@ services:
     container_name: spring_backend
     mem_limit: 640m
     ports:
-      - "127.0.0.1:9090:9090" # Frees port 8080 for Jenkins!
+      - "127.0.0.1:9090:8080" # Maps host 9090 -> container 8080 (Frees 8080 for Jenkins)
     env_file:
       - .env
     depends_on:
@@ -93,10 +87,10 @@ services:
         condition: service_started
     environment:
       - JAVA_OPTS=-Xmx512m -Xms256m
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/${DATASOURCE_DB}
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres_container:5432/${DATASOURCE_DB}
       - SPRING_DATASOURCE_USERNAME=${DATASOURCE_USERNAME}
       - SPRING_DATASOURCE_PASSWORD=${DATASOURCE_PASSWORD}
-      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_HOST=redis_container
       - SPRING_DATA_REDIS_PORT=6379
     restart: on-failure
     networks:
