@@ -45,7 +45,7 @@ services:
     container_name: rustfs_local
     restart: unless-stopped
     ports:
-      - "9001:9001"   # RustFS Manager Console (locked down via GCP firewall + IAP)
+      - "9101:9001"   # RustFS Manager Console (locked down via GCP firewall + IAP)
     environment:
       RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY}
       RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY}
