@@ -46,6 +46,7 @@ services:
     restart: unless-stopped
     ports:
       - "9101:9001"   # RustFS Manager Console (locked down via GCP firewall + IAP)
+      - "9100:9000"   # RustFS S3 API (needed for console login/auth calls)
     environment:
       RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY}
       RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY}
